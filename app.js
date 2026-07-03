@@ -732,11 +732,14 @@ class CubeBuddyApp {
           if (edgeKey && SWIPE_CW_DIR[touchStartFace]?.[edgeKey]) {
             // Adjacent face: CW = matching the lookup direction
             isCcw = swipeDir !== SWIPE_CW_DIR[touchStartFace][edgeKey];
+            this._debugLog(`2D → dir: edgeKey=${edgeKey} swipeDir=${swipeDir} cwDir=${SWIPE_CW_DIR[touchStartFace][edgeKey]} baseCcw=${isCcw}`);
           } else {
             // Same face (middle row/col): base rule
             // left→right = CCW, right→left = CW
             // top→bottom = CW, bottom→top = CCW
             isCcw = isHorizontal ? swipeDir === 'right' : swipeDir !== 'down';
+            this._debugLog(`2D → dir: base rule isCcw=${isCcw} isHoriz=${isHorizontal} swipeDir=${swipeDir}`);
+
             // R face is mirrored — invert direction for vertical middle-col swipes
             if (touchStartFace === 5 && !isHorizontal) isCcw = !isCcw;
             // B face direction override
@@ -748,6 +751,7 @@ class CubeBuddyApp {
                 // L: down=CCW, up=CW. R: down=CW, up=CCW.
                 isCcw = swipedFace === 'L' ? dy > 0 : dy < 0;
               }
+              this._debugLog(`2D → dir: B override face=${swipedFace} dy=${dy} finalCcw=${isCcw}`);
             }
           }
           this._doMove(swipedFace, isCcw); // true = 3 CW turns = 1 CCW
