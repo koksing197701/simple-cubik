@@ -730,11 +730,15 @@ class CubeBuddyApp {
             isCcw = isHorizontal ? swipeDir === 'right' : swipeDir !== 'down';
             // R face is mirrored — invert direction for vertical middle-col swipes
             if (touchStartFace === 5 && !isHorizontal) isCcw = !isCcw;
-            // B face horizontal: direction depends on target
-            if (touchStartFace === 3 && isHorizontal) {
-              // When targeting U: right=CCW, left=CW
-              // When targeting D: right=CW, left=CCW
-              isCcw = swipedFace === 'U' ? dx > 0 : dx < 0;
+            // B face direction override
+            if (touchStartFace === 3) {
+              if (isHorizontal) {
+                // U: right=CW, left=CCW. D: right=CCW, left=CW.
+                isCcw = swipedFace === 'U' ? dx < 0 : dx > 0;
+              } else {
+                // L: down=CW (isCcw=false), up=CCW. R: down=CCW, up=CW.
+                isCcw = swipedFace === 'L' ? dy < 0 : dy > 0;
+              }
             }
           }
           this._doMove(swipedFace, isCcw); // true = 3 CW turns = 1 CCW
@@ -902,23 +906,33 @@ class CubeBuddyApp {
     // For vertical swipes, the COLUMN matters (left/right edge).
     let targetFace = null;
 
-    // B face (back) needs special handling: horizontal edge swipes depend on position and direction
-    if (startFace === 3 && isHorizontal && targetFace === null) {
-      // Bottom row (row=2): left → D (any column)
-      if (row === 2 && dx < 0) {
-        targetFace = 1; // D
-      }
-      // B left col (col=0): right → U
-      else if (col === 0 && dx > 0) {
-        targetFace = 0; // U
-      }
-      // B right col (col=2): left → U, right → D
-      else if (col === 2) {
-        targetFace = dx < 0 ? 0 : 1; // left→U, right→D
-      }
-      // Top row (row=0) middle col: right → U
-      else if (row === 0 && dx > 0) {
-        targetFace = 0; // U
+    // B face (back) needs special handling based on position within the face
+    if (startFace === 3 && targetFace === null) {
+      if (isHorizontal) {
+        // UB(0,0) left → U CCW: col=2, row=2, dx<0
+        // UB(0,2) right → U CW:  col=0, row=2, dx>0
+        // UB(2,2) right → D CCW: col=0, row=0, dx>0
+        // UB(2,0) left → D CW:   col=2, row=0, dx<0
+        // DOM coords with mirror+swapRows: col 0 = native 2, row 0 = native 2
+        if (dx > 0) {
+          // right swipe
+          if (row === 2 && col === 0) targetFace = 0; // UB(0,2) → U
+          else if (row === 0 && col === 0) targetFace = 1; // UB(2,2) → D
+        } else {
+          // left swipe
+          if (row === 2 && col === 2) targetFace = 0; // UB(0,0) → U
+          else if (row === 0 && col === 2) targetFace = 1; // UB(2,0) → D
+        }
+      } else {
+        // Vertical swipe on B
+        // col 0 (DOM) = native col 2 → L face
+        // col 2 (DOM) = native col 0 → R face
+        // UB(2,2) down: DOM(0,0) dy>0 → L CW
+        // UB(0,2) up:   DOM(2,0) dy<0 → L CCW
+        // UB(2,0) down: DOM(0,2) dy>0 → R CCW
+        // UB(0,0) up:   DOM(2,2) dy<0 → R CW
+        if (col === 0) targetFace = 4; // DOM left edge → L
+        else if (col === 2) targetFace = 5; // DOM right edge → R
       }
     }
 
