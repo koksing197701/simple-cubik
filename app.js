@@ -369,8 +369,13 @@ class CubeBuddyApp {
   _renderCube() {
     const container = this.cubeContainer;
     const rect = container.getBoundingClientRect();
-    const availW = rect.width;
-    const availH = rect.height;
+    // Subtract CSS padding so faces don't overflow the content area
+    const padL = parseInt(getComputedStyle(container).paddingLeft) || 0;
+    const padR = parseInt(getComputedStyle(container).paddingRight) || 0;
+    const padT = parseInt(getComputedStyle(container).paddingTop) || 0;
+    const padB = parseInt(getComputedStyle(container).paddingBottom) || 0;
+    const availW = rect.width - padL - padR;
+    const availH = rect.height - padT - padB;
 
     if (availW <= 0 || availH <= 0) return;
 

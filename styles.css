@@ -322,8 +322,8 @@ body {
   border: 1px solid var(--border-light);
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow-lg);
-  z-index: 200;
-  min-width: 120px;
+  z-index: 9999;
+  min-width: 130px;
   padding: 4px;
 }
 .theme-option {
