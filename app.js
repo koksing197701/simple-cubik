@@ -633,13 +633,6 @@ class CubeBuddyApp {
           }, 400);
         }
       } else if (dist >= 10) {
-        // B face: no swipe — only tap + button controls
-        if (touchStartFace === 3) {
-          touchStartX = undefined;
-          touchStartY = undefined;
-          touchStartFace = null;
-          return;
-        }
         // Try row/column swipe on the starting face first
         const swipedFace = this._resolveSwipeOnFace(
           touchStartX, touchStartY,
@@ -865,7 +858,10 @@ class CubeBuddyApp {
         col0: 2, // left col → F
         col2: 3, // right col → B
       },
-      3: { // B (back face) — no edge adjacencies, always falls through to self-turn
+      3: { // B (back face) — cross net: B below D, L left, R right
+        row0: 1, // top row → D
+        col0: 4, // left col → L
+        col2: 5, // right col → R
       },
     };
 
