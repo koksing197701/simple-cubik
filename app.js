@@ -61,7 +61,7 @@ class CubeBuddyApp {
     this.showCelebration = false;
     this._viewMode = '3d';
     this._cube3d = null;
-    this._focusMode = 'focus'; // 'focus'=5 faces, 'full'=9 faces w/ 4 B cards, 'cross'=6 face cross net
+    this._focusMode = 'cross'; // 'focus'=5 faces, 'full'=9 faces w/ 4 B cards, 'cross'=6 face cross net
 
     this._history = [];
     this._snapshots = [];
@@ -121,10 +121,10 @@ class CubeBuddyApp {
     }
     this._init3D();
 
-    // Default to focus mode
-    if (this.focusBtn) this.focusBtn.classList.add('active');
+    // Default to cross mode
+    if (this.crossBtn) this.crossBtn.classList.add('active');
+    if (this.focusBtn) this.focusBtn.classList.remove('active');
     if (this.fullBtn) this.fullBtn.classList.remove('active');
-    if (this.crossBtn) this.crossBtn.classList.remove('active');
 
     // Set up touch handling once
     if (!this._touchSetup) {
