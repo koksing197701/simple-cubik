@@ -348,7 +348,7 @@ body {
   border-radius: var(--radius-md);
   display: flex; align-items: center; justify-content: center;
   box-shadow: var(--shadow-md), 0 0 0 1px var(--border-card);
-  padding: 2px;
+  padding: 3px;
 }
 
 /* 3D container */
