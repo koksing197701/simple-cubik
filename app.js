@@ -157,7 +157,9 @@ class CubeBuddyApp {
 
   _setupTheme() {
     // Load saved theme
-    const saved = localStorage.getItem('simplecubik_theme') || 'default';
+    let saved = localStorage.getItem('simplecubik_theme') || 'default';
+    // Map old 'classic' to 'default' (classic was removed, replaced by amber/blue/green)
+    if (saved === 'classic') saved = 'default';
     this._applyTheme(saved);
 
     // Theme button toggle menu
@@ -196,7 +198,7 @@ class CubeBuddyApp {
 
   _applyTheme(theme) {
     // Remove all theme classes
-    document.body.classList.remove('theme-dark', 'theme-classic');
+    document.body.classList.remove('theme-dark', 'theme-amber', 'theme-blue', 'theme-green');
     if (theme !== 'default') {
       document.body.classList.add(`theme-${theme}`);
     }
