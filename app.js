@@ -681,10 +681,17 @@ class CubeBuddyApp {
           // Determine which edge was used on the start face
           // Priority: for horizontal swipes → check row edges first
           //           for vertical swipes → check col edges first
-          const rect = this.cubeContainer.querySelectorAll('.cube-face');
+          const faceEls = this.cubeContainer.querySelectorAll('.cube-face');
           let targetEl = null;
-          rect.forEach(el => {
-            if (parseInt(el.dataset.faceIdx) === touchStartFace) targetEl = el;
+          let bestDist = Infinity;
+          faceEls.forEach(el => {
+            if (parseInt(el.dataset.faceIdx) === touchStartFace) {
+              const r = el.getBoundingClientRect();
+              const cx = r.left + r.width / 2;
+              const cy = r.top + r.height / 2;
+              const dist = Math.sqrt((touchStartX - cx) ** 2 + (touchStartY - cy) ** 2);
+              if (dist < bestDist) { bestDist = dist; targetEl = el; }
+            }
           });
           let edgeKey = null;
           if (targetEl) {
