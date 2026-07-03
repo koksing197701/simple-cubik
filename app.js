@@ -736,8 +736,8 @@ class CubeBuddyApp {
                 // U: right=CW, left=CCW. D: right=CCW, left=CW.
                 isCcw = swipedFace === 'U' ? dx < 0 : dx > 0;
               } else {
-                // R: down=CW, up=CCW. L: down=CCW, up=CW.
-                isCcw = swipedFace === 'R' ? dy < 0 : dy > 0;
+                // R: down=CCW, up=CW. L: down=CW, up=CCW.
+                isCcw = swipedFace === 'R' ? dy > 0 : dy < 0;
               }
             }
           }
