@@ -46,7 +46,7 @@ const FACE_SPECS_CROSS = [
   { faceIdx: 2, row: 1, col: 1, mirror: false, swapRows: false }, // F
   { faceIdx: 5, row: 1, col: 2, mirror: false, swapRows: false }, // R
   { faceIdx: 1, row: 2, col: 1, mirror: false, swapRows: false }, // D
-  { faceIdx: 3, row: 3, col: 1, mirror: false, swapRows: false }, // B (identity, no mirror)
+  { faceIdx: 3, row: 3, col: 1, mirror: true, swapRows: true }, // B (rows flipped, cols mirrored: B2,2 at top-left)
 ];
 
 const FACE_BORDER_COLORS = ['#FAFAFA', '#FFD500', '#4CAF50', '#2196F3', '#FF7500', '#F44336'];
