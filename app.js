@@ -786,6 +786,7 @@ class CubeBuddyApp {
       touchStartX = undefined;
       touchStartY = undefined;
       touchStartFace = null;
+      touchStartEl = null;
       if (tapPending) {
         clearTimeout(tapPending);
         tapPending = false;
