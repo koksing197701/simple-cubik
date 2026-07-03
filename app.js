@@ -855,6 +855,12 @@ class CubeBuddyApp {
     const col = Math.max(0, Math.min(2, touchCol));
     const row = Math.max(0, Math.min(2, touchRow));
 
+    // Convert DOM cell coords to native face coords using the face element's mirror/swapRows
+    const isMirror = targetEl.dataset.mirror === '1';
+    const isSwapped = targetEl.dataset.swapRows === '1';
+    const nativeRow = isSwapped ? (2 - row) : row;
+    const nativeCol = isMirror ? (2 - col) : col;
+
     // Adjacency mapping for Focus view cross net layout:
     //          U (r0,c1)
     //     L(r1,c0) F(r1,c1) R(r1,c2)
@@ -906,33 +912,21 @@ class CubeBuddyApp {
     // For vertical swipes, the COLUMN matters (left/right edge).
     let targetFace = null;
 
-    // B face (back) needs special handling based on position within the face
+    // B face (back) needs special handling: all B faces use same native coordinate mapping
     if (startFace === 3 && targetFace === null) {
       if (isHorizontal) {
-        // UB(0,0) left → U CCW: col=2, row=2, dx<0
-        // UB(0,2) right → U CW:  col=0, row=2, dx>0
-        // UB(2,2) right → D CCW: col=0, row=0, dx>0
-        // UB(2,0) left → D CW:   col=2, row=0, dx<0
-        // DOM coords with mirror+swapRows: col 0 = native 2, row 0 = native 2
-        if (dx > 0) {
-          // right swipe
-          if (row === 2 && col === 0) targetFace = 0; // UB(0,2) → U
-          else if (row === 0 && col === 0) targetFace = 1; // UB(2,2) → D
-        } else {
-          // left swipe
-          if (row === 2 && col === 2) targetFace = 0; // UB(0,0) → U
-          else if (row === 0 && col === 2) targetFace = 1; // UB(2,0) → D
+        // Native row 0 (top): left→U, right→U
+        // Native row 2 (bottom): left→D, right→D
+        // col determines CW/CCW direction logic, not target face
+        if (nativeRow === 0) {
+          targetFace = 0; // U
+        } else if (nativeRow === 2) {
+          targetFace = 1; // D
         }
       } else {
-        // Vertical swipe on B
-        // col 0 (DOM) = native col 2 → L face
-        // col 2 (DOM) = native col 0 → R face
-        // UB(2,2) down: DOM(0,0) dy>0 → L CW
-        // UB(0,2) up:   DOM(2,0) dy<0 → L CCW
-        // UB(2,0) down: DOM(0,2) dy>0 → R CCW
-        // UB(0,0) up:   DOM(2,2) dy<0 → R CW
-        if (col === 0) targetFace = 4; // DOM left edge → L
-        else if (col === 2) targetFace = 5; // DOM right edge → R
+        // Vertical: native col 0 = L, native col 2 = R
+        if (nativeCol === 0) targetFace = 4; // L
+        else if (nativeCol === 2) targetFace = 5; // R
       }
     }
 
