@@ -576,6 +576,7 @@ class CubeBuddyApp {
 
     let touchStartX, touchStartY;
     let touchStartFace = null; // face index where touch started
+    let touchStartEl = null; // face element where touch started
     let lastTapTime = 0;
     let tapPending = false;
 
@@ -596,6 +597,7 @@ class CubeBuddyApp {
         const cellResult = this._resolveCell(x, y, touchStartFace);
         if (cellResult) {
           const { cell, faceEl } = cellResult;
+          touchStartEl = faceEl; // save element for swipe resolution
           // Convert cell coords to native face coords if swapRows/mirror are applied
           let displayRow = cell.row;
           let displayCol = cell.col;
@@ -651,7 +653,7 @@ class CubeBuddyApp {
         // Try row/column swipe on the starting face first
         const swipedFace = this._resolveSwipeOnFace(
           touchStartX, touchStartY,
-          dx, dy, touchStartFace
+          dx, dy, touchStartFace, touchStartEl
         );
         if (swipedFace) {
           this._debugLog(`2D → resolved: ${swipedFace}`);
@@ -748,6 +750,7 @@ class CubeBuddyApp {
       touchStartX = undefined;
       touchStartY = undefined;
       touchStartFace = null;
+      touchStartEl = null;
     };
 
     // Touch — set flag so we can ignore synthetic mouse events
@@ -811,25 +814,11 @@ class CubeBuddyApp {
   //   D connects to L/R at its sides
   //   L connects to U/D at its top/bottom
   //   R connects to U/D at its top/bottom
-  _resolveSwipeOnFace(startX, startY, dx, dy, startFace) {
+  _resolveSwipeOnFace(startX, startY, dx, dy, startFace, startEl) {
     if (startFace === null) return null;
 
-    // Get the face's DOM element — find closest to swipe start
-    const faceEls = this.cubeContainer.querySelectorAll('.cube-face');
-    let targetEl = null;
-    let bestDist = Infinity;
-    faceEls.forEach(el => {
-      if (parseInt(el.dataset.faceIdx) === startFace) {
-        const rect = el.getBoundingClientRect();
-        const cx = rect.left + rect.width / 2;
-        const cy = rect.top + rect.height / 2;
-        const dist = Math.sqrt((startX - cx) ** 2 + (startY - cy) ** 2);
-        if (dist < bestDist) {
-          bestDist = dist;
-          targetEl = el;
-        }
-      }
-    });
+    // Use the pre-resolved face element (avoids picking wrong B card)
+    const targetEl = startEl || null;
     if (!targetEl) return null;
 
     const rect = targetEl.getBoundingClientRect();
