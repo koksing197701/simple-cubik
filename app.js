@@ -424,13 +424,13 @@ class CubeBuddyApp {
     const rows = faceSpecs.map(s => s.row);
     const minRow = Math.min(...rows);
     const maxRow = Math.max(...rows);
-    const rawSize = Math.min(availW / widthDivisor, availH / ((maxRow - minRow + 1) * 3.5 + 0.5));
+    const rawSize = Math.min(availW / widthDivisor, availH / ((maxRow - minRow + 1) * 3.3 + 0.3));
     const stickerSize = Math.floor(Math.min(rawSize, 110));
     if (stickerSize < 10) return;
 
     const gap = Math.max(1, Math.floor(stickerSize * 0.05));    // thin border between stickers
-    const faceMargin = Math.floor(stickerSize * 0.4);          // space between faces — restored
-    const borderExtra = Math.floor(stickerSize * 0.35);         // thicker border wrapping each face
+    const faceMargin = Math.floor(stickerSize * 0.2);          // space between faces — halved for tighter layout
+    const borderExtra = Math.floor(stickerSize * 0.18);         // thinner border wrapping each face
     const stickerPitch = stickerSize + gap;
     const faceWidth = 2 * stickerPitch + stickerSize;
     const facePitch = faceWidth + faceMargin;
