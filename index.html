@@ -16,6 +16,15 @@
 </head>
 <body>
 
+  <!-- Theme menu (fixed overlay — never hidden behind stacking contexts) -->
+  <div id="theme-menu" class="theme-menu" style="display:none">
+    <button data-theme="default" class="theme-option active">☀️ Light</button>
+    <button data-theme="dark" class="theme-option">🌙 Dark</button>
+    <button data-theme="amber" class="theme-option">🔥 Amber</button>
+    <button data-theme="blue" class="theme-option">💧 Blue</button>
+    <button data-theme="green" class="theme-option">🌿 Green</button>
+  </div>
+
   <!-- ===== PLAY SCREEN ===== -->
   <div id="play-screen" class="active">
     <div class="play-inner">
@@ -26,16 +35,7 @@
         <span class="version-badge">v3.0.0</span>
       </div>
       <div class="top-bar-right">
-        <div class="theme-selector">
-          <button id="theme-btn" class="theme-btn" title="Switch theme">🎨</button>
-          <div id="theme-menu" class="theme-menu" style="display:none">
-            <button data-theme="default" class="theme-option active">☀️ Light</button>
-            <button data-theme="dark" class="theme-option">🌙 Dark</button>
-            <button data-theme="amber" class="theme-option">🔥 Amber</button>
-            <button data-theme="blue" class="theme-option">💧 Blue</button>
-            <button data-theme="green" class="theme-option">🌿 Green</button>
-          </div>
-        </div>
+        <button id="theme-btn" class="theme-btn" title="Switch theme">🎨</button>
       </div>
     </div>
     <div class="view-tabs">
