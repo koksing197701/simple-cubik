@@ -402,8 +402,8 @@ class CubeBuddyApp {
     container.style.justifyContent = 'center';
     container.style.position = 'relative';
 
-    const cx = availW / 2;
-    const cy = availH / 2;
+    const cx = availW / 2 + padL;
+    const cy = availH / 2 + padT;
 
     const pos = (row, col) => ({
       x: cx + (col - 1) * facePitch,
