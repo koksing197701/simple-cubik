@@ -787,7 +787,7 @@ class CubeBuddyApp {
   //   L connects to U/D at its top/bottom
   //   R connects to U/D at its top/bottom
   _resolveSwipeOnFace(startX, startY, dx, dy, startFace) {
-    if (startFace === null || startFace === 3) return null;
+    if (startFace === null) return null;
 
     // Get the face's DOM element
     const faceEls = this.cubeContainer.querySelectorAll('.cube-face');
