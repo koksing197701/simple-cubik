@@ -1,17 +1,17 @@
 /* Cube Buddy Simple — Theme System */
-/* Default: Light/Lavender theme. Additional themes override :root custom properties via body class. */
+/* Default: Clean White theme. Additional themes override :root custom properties via body class. */
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 :root {
-  --bg-page: #ede7f6;
+  --bg-page: #f8f8fa;
   --bg-surface: #ffffff;
   --bg-card: #ffffff;
-  --bg-soft: #e0d6f2;
+  --bg-soft: #e8e8ee;
   --bg-glass: rgba(255,255,255,0.7);
   
-  --border-light: #d4cce6;
-  --border-card: #c8c0dc;
+  --border-light: #e0e0e6;
+  --border-card: #d0d0d8;
   
   --primary: #7c3aed;
   --primary-light: #a78bfa;
@@ -20,9 +20,9 @@
   --accent-emerald: #10b981;
   --accent-rose: #f43f5e;
   
-  --text-main: #1e1b2e;
-  --text-dim: #6b6580;
-  --text-muted: #a5a0b5;
+  --text-main: #1e1e2e;
+  --text-dim: #6b6b80;
+  --text-muted: #a5a5b5;
   
   --shadow-sm: 0 1px 3px rgba(0,0,0,0.04);
   --shadow-md: 0 4px 16px rgba(0,0,0,0.06);
@@ -34,7 +34,8 @@
   --radius-pill: 999px;
   --font: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro', 'Segoe UI', Roboto, sans-serif;
 
-  --cube-bg: #e0d8ec;  /* 3D scene background — also used on cube-container */
+  /* 3D scene background */
+  --cube-bg: #f0f0f4;  /* 3D scene background — also used on cube-container */
 }
 
 /* ===== DARK THEME ===== */
@@ -169,12 +170,45 @@ body.theme-green {
   background: linear-gradient(145deg, #e0f0e8 0%, #d8ece2 50%, #cce0d4 100%);
 }
 
+/* ===== PURPLE THEME (lavender, soft) ===== */
+body.theme-purple {
+  --bg-page: #ede7f6;
+  --bg-surface: #f8f5ff;
+  --bg-card: #f5f0ff;
+  --bg-soft: #e0d6f2;
+  --bg-glass: rgba(255,255,255,0.7);
+  
+  --border-light: #d4cce6;
+  --border-card: #c8c0dc;
+  
+  --primary: #7c3aed;
+  --primary-light: #a78bfa;
+  --primary-glow: rgba(124,58,237,0.12);
+  --accent-amber: #f59e0b;
+  --accent-emerald: #10b981;
+  --accent-rose: #f43f5e;
+  
+  --text-main: #2a1a4e;
+  --text-dim: #6b5080;
+  --text-muted: #9a80b5;
+  
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.06);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.08);
+
+  --cube-bg: #ede7f6;
+}
+
+body.theme-purple {
+  background: linear-gradient(145deg, #ede7f6 0%, #e8e0f4 50%, #e0d6f2 100%);
+}
+
 html { height: 100%; }
 
 body {
   min-height: 100%; height: 100%;
   font-family: var(--font);
-  background: linear-gradient(145deg, #ede7f6 0%, #e0d6f2 50%, #d8ceec 100%);
+  background: linear-gradient(145deg, #f8f8fa 0%, #f0f0f4 50%, #e8e8ee 100%);
   background-attachment: fixed;
   color: var(--text-main);
   overflow-x: hidden;
