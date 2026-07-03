@@ -420,7 +420,7 @@ class CubeBuddyApp {
       faceSpecs = FACE_SPECS_CLASSIC;
       widthDivisor = 17;
     }
-    const rawSize = Math.min(availW / widthDivisor, availH / (this._focusMode === 'cross' ? 7 : 5.5));
+    const rawSize = Math.min(availW / widthDivisor, availH / (this._focusMode === 'cross' ? 12 : this._focusMode === 'focus' ? 11 : 17));
     const stickerSize = Math.floor(Math.min(rawSize, 110));
     if (stickerSize < 10) return;
 
