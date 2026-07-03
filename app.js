@@ -152,6 +152,66 @@ class CubeBuddyApp {
         this._renderCube();
       }
     });
+    this._setupTheme();
+  }
+
+  _setupTheme() {
+    // Load saved theme
+    const saved = localStorage.getItem('simplecubik_theme') || 'default';
+    this._applyTheme(saved);
+
+    // Theme button toggle menu
+    const themeBtn = document.getElementById('theme-btn');
+    const themeMenu = document.getElementById('theme-menu');
+    const themeOptions = themeMenu.querySelectorAll('.theme-option');
+
+    // Mark saved theme as active
+    themeOptions.forEach(opt => {
+      if (opt.dataset.theme === saved) opt.classList.add('active');
+    });
+
+    themeBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      themeMenu.style.display = themeMenu.style.display === 'none' ? 'block' : 'none';
+    });
+
+    // Close menu when clicking elsewhere
+    document.addEventListener('click', () => {
+      themeMenu.style.display = 'none';
+    });
+    themeMenu.addEventListener('click', (e) => e.stopPropagation());
+
+    // Theme selection
+    themeOptions.forEach(opt => {
+      opt.addEventListener('click', () => {
+        const theme = opt.dataset.theme;
+        this._applyTheme(theme);
+        localStorage.setItem('simplecubik_theme', theme);
+        themeOptions.forEach(o => o.classList.remove('active'));
+        opt.classList.add('active');
+        themeMenu.style.display = 'none';
+      });
+    });
+  }
+
+  _applyTheme(theme) {
+    // Remove all theme classes
+    document.body.classList.remove('theme-dark', 'theme-classic');
+    if (theme !== 'default') {
+      document.body.classList.add(`theme-${theme}`);
+    }
+    // Update 3D scene background to match CSS variable
+    if (this._cube3d) {
+      this._update3DBackground();
+    }
+  }
+
+  _update3DBackground() {
+    if (!this._cube3d) return;
+    const bg = getComputedStyle(document.body).getPropertyValue('--cube-bg').trim();
+    if (bg) {
+      this._cube3d.scene.background = new THREE.Color(bg);
+    }
   }
 
   _scramble() {
@@ -226,6 +286,8 @@ class CubeBuddyApp {
     });
     this._cube3d.rebuild();
     this._cube3d.moves = this.moves;
+    // Apply current theme background to 3D scene
+    this._update3DBackground();
     // Connect debug if ON
     this._ensure3DDebug();
     // Set up face button snapshots for 3D

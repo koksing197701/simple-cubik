@@ -25,7 +25,7 @@ class CubeBuddy3D {
     const h = container.clientHeight || 400;
 
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0xe0d8ec);
+    // Background set by app via _update3DBackground — reads from CSS var --cube-bg
 
     this.camera = new THREE.PerspectiveCamera(35, w / h, 0.1, 100);
     this.camera.position.set(4.18, 3.14, 5.23);
