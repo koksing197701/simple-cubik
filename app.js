@@ -681,18 +681,7 @@ class CubeBuddyApp {
           // Determine which edge was used on the start face
           // Priority: for horizontal swipes → check row edges first
           //           for vertical swipes → check col edges first
-          const faceEls = this.cubeContainer.querySelectorAll('.cube-face');
-          let targetEl = null;
-          let bestDist = Infinity;
-          faceEls.forEach(el => {
-            if (parseInt(el.dataset.faceIdx) === touchStartFace) {
-              const r = el.getBoundingClientRect();
-              const cx = r.left + r.width / 2;
-              const cy = r.top + r.height / 2;
-              const dist = Math.sqrt((touchStartX - cx) ** 2 + (touchStartY - cy) ** 2);
-              if (dist < bestDist) { bestDist = dist; targetEl = el; }
-            }
-          });
+          let targetEl = this._findFaceByPos(touchStartX, touchStartY, touchStartFace);
           let edgeKey = null;
           if (targetEl) {
             const r = targetEl.getBoundingClientRect();
@@ -835,17 +824,7 @@ class CubeBuddyApp {
       targetEl = startEl;
     }
     if (!targetEl) {
-      const faceEls = this.cubeContainer.querySelectorAll('.cube-face');
-      let bestDist = Infinity;
-      faceEls.forEach(el => {
-        if (parseInt(el.dataset.faceIdx) === startFace) {
-          const r = el.getBoundingClientRect();
-          const cx = r.left + r.width / 2;
-          const cy = r.top + r.height / 2;
-          const dist = Math.sqrt((startX - cx) ** 2 + (startY - cy) ** 2);
-          if (dist < bestDist) { bestDist = dist; targetEl = el; }
-        }
-      });
+      targetEl = this._findFaceByPos(startX, startY, startFace);
     }
     if (!targetEl) return null;
 
@@ -1017,6 +996,24 @@ class CubeBuddyApp {
     return ['U', 'D', 'F', 'B', 'L', 'R'][targetFace];
   }
 
+  // Find the closest face element by faceIdx from a given clientX/Y position
+  // This is THE single source of truth — never use forEach+overwrite for faceIdx matching.
+  _findFaceByPos(clientX, clientY, faceIdx) {
+    const faces = this.cubeContainer.querySelectorAll('.cube-face');
+    let best = null;
+    let bestDist = Infinity;
+    faces.forEach(el => {
+      if (parseInt(el.dataset.faceIdx) === faceIdx) {
+        const r = el.getBoundingClientRect();
+        const cx = r.left + r.width / 2;
+        const cy = r.top + r.height / 2;
+        const dist = Math.sqrt((clientX - cx) ** 2 + (clientY - cy) ** 2);
+        if (dist < bestDist) { bestDist = dist; best = el; }
+      }
+    });
+    return best;
+  }
+
   _hitTestFace(clientX, clientY) {
     const rect = this.cubeContainer.getBoundingClientRect();
     const x = clientX - rect.left;
@@ -1043,21 +1040,7 @@ class CubeBuddyApp {
 
   _resolveCell(clientX, clientY, faceIdx) {
     // Find the face element closest to the click position
-    let targetEl = null;
-    let bestDist = Infinity;
-    const faceEls = this.cubeContainer.querySelectorAll('.cube-face');
-    faceEls.forEach(el => {
-      if (parseInt(el.dataset.faceIdx) === faceIdx) {
-        const rect = el.getBoundingClientRect();
-        const cx = rect.left + rect.width / 2;
-        const cy = rect.top + rect.height / 2;
-        const dist = Math.sqrt((clientX - cx) ** 2 + (clientY - cy) ** 2);
-        if (dist < bestDist) {
-          bestDist = dist;
-          targetEl = el;
-        }
-      }
-    });
+    const targetEl = this._findFaceByPos(clientX, clientY, faceIdx);
     if (!targetEl) return null;
     const rect = targetEl.getBoundingClientRect();
     const style = getComputedStyle(targetEl);
