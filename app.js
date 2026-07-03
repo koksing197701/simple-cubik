@@ -744,6 +744,7 @@ class CubeBuddyApp {
             }
           }
           this._doMove(swipedFace, isCcw); // true = 3 CW turns = 1 CCW
+          this._debugLog(`2D → done: ${swipedFace} ${isCcw ? 'CCW' : 'CW'}`);
         }
       }
 
