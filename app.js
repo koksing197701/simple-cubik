@@ -119,6 +119,8 @@ class CubeBuddyApp {
 
   _setupPlay() {
     this.mixBtn.addEventListener('click', () => this._scramble());
+    this.scanBtn = document.getElementById('scan-btn');
+    if (this.scanBtn) this.scanBtn.addEventListener('click', () => this._startScan());
     this.undoBtn.addEventListener('click', () => this._undo());
     const resetBtn = document.getElementById('reset-btn');
     if (resetBtn) resetBtn.addEventListener('click', () => this.resetCube());
@@ -1150,12 +1152,6 @@ class CubeBuddyApp {
       });
       this.snapshotContainer.appendChild(btn);
     }
-    // 4th slot: scan button
-    const scanBtn = document.createElement('button');
-    scanBtn.className = 'snapshot-btn scan-slot-btn';
-    scanBtn.innerHTML = '<span class="snap-name">📷 Scan</span>';
-    scanBtn.onclick = () => this._startScan();
-    this.snapshotContainer.appendChild(scanBtn);
   }
 
   // ==================== CAMERA SCAN ====================
