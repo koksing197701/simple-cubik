@@ -35,6 +35,20 @@ const FACE_SPECS_FOCUS = [
   { faceIdx: 1, row: 2, col: 1, mirror: false, swapRows: false }, // D
 ];
 
+// Cross view: 6 faces in true cross net — B at top, no extra B cards
+//   Row -1: [B]
+//   Row  0: [U]
+//   Row  1: [L][F][R]
+//   Row  2: [D]
+const FACE_SPECS_CROSS = [
+  { faceIdx: 3, row: -1, col: 1, mirror: false, swapRows: false }, // B (identity, no mirror)
+  { faceIdx: 0, row: 0, col: 1, mirror: false, swapRows: false }, // U
+  { faceIdx: 4, row: 1, col: 0, mirror: false, swapRows: false }, // L
+  { faceIdx: 2, row: 1, col: 1, mirror: false, swapRows: false }, // F
+  { faceIdx: 5, row: 1, col: 2, mirror: false, swapRows: false }, // R
+  { faceIdx: 1, row: 2, col: 1, mirror: false, swapRows: false }, // D
+];
+
 const FACE_BORDER_COLORS = ['#FAFAFA', '#FFD500', '#4CAF50', '#2196F3', '#FF7500', '#F44336'];
 // Override for 2D sticker fill colors so 3D and 2D can differ
 const FACE_COLORS_2D = [...FACE_COLORS];
@@ -47,7 +61,7 @@ class CubeBuddyApp {
     this.showCelebration = false;
     this._viewMode = '3d';
     this._cube3d = null;
-    this._focusMode = true;
+    this._focusMode = 'focus'; // 'focus'=5 faces, 'full'=9 faces w/ 4 B cards, 'cross'=6 face cross net
 
     this._history = [];
     this._snapshots = [];
@@ -79,6 +93,7 @@ class CubeBuddyApp {
 
     this.fullBtn = document.getElementById('full-btn');
     this.focusBtn = document.getElementById('focus-btn');
+    this.crossBtn = document.getElementById('cross-btn');
     this.controls2d = document.getElementById('controls-2d');
     this.cubeArea = document.getElementById('cube-area');
   }
@@ -109,6 +124,7 @@ class CubeBuddyApp {
     // Default to focus mode
     if (this.focusBtn) this.focusBtn.classList.add('active');
     if (this.fullBtn) this.fullBtn.classList.remove('active');
+    if (this.crossBtn) this.crossBtn.classList.remove('active');
 
     // Set up touch handling once
     if (!this._touchSetup) {
@@ -135,23 +151,36 @@ class CubeBuddyApp {
     this.faceButtons = document.getElementById('face-buttons');
     this.okBtn.addEventListener('click', () => this._dismissCelebration());
 
-    // Full / Focus buttons (2D mode selection)
+    // Full / Focus / Cross buttons (2D mode selection)
     this.fullBtn.addEventListener('click', () => {
-      if (this._focusMode) {
-        this._focusMode = false;
+      if (this._focusMode !== 'full') {
+        this._focusMode = 'full';
         this.fullBtn.classList.add('active');
         this.focusBtn.classList.remove('active');
+        if (this.crossBtn) this.crossBtn.classList.remove('active');
         this._renderCube();
       }
     });
     this.focusBtn.addEventListener('click', () => {
-      if (!this._focusMode) {
-        this._focusMode = true;
+      if (this._focusMode !== 'focus') {
+        this._focusMode = 'focus';
         this.focusBtn.classList.add('active');
         this.fullBtn.classList.remove('active');
+        if (this.crossBtn) this.crossBtn.classList.remove('active');
         this._renderCube();
       }
     });
+    if (this.crossBtn) {
+      this.crossBtn.addEventListener('click', () => {
+        if (this._focusMode !== 'cross') {
+          this._focusMode = 'cross';
+          this.crossBtn.classList.add('active');
+          this.fullBtn.classList.remove('active');
+          this.focusBtn.classList.remove('active');
+          this._renderCube();
+        }
+      });
+    }
     this._setupTheme();
   }
 
@@ -380,9 +409,18 @@ class CubeBuddyApp {
     if (availW <= 0 || availH <= 0) return;
 
     // Compute sticker size that fits the full 9-face cross net — bigger faces, less breathing room
-    const faceSpecs = this._focusMode ? FACE_SPECS_FOCUS : FACE_SPECS_CLASSIC;
-    const widthDivisor = this._focusMode ? 10.5 : 17;
-    const rawSize = Math.min(availW / widthDivisor, availH / 5.5);
+    let faceSpecs, widthDivisor;
+    if (this._focusMode === 'focus') {
+      faceSpecs = FACE_SPECS_FOCUS;
+      widthDivisor = 10.5;
+    } else if (this._focusMode === 'cross') {
+      faceSpecs = FACE_SPECS_CROSS;
+      widthDivisor = 14; // 3 columns (L,F,R) + margins
+    } else {
+      faceSpecs = FACE_SPECS_CLASSIC;
+      widthDivisor = 17;
+    }
+    const rawSize = Math.min(availW / widthDivisor, availH / (this._focusMode === 'cross' ? 7 : 5.5));
     const stickerSize = Math.floor(Math.min(rawSize, 110));
     if (stickerSize < 10) return;
 
