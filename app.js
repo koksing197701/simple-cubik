@@ -817,8 +817,24 @@ class CubeBuddyApp {
   _resolveSwipeOnFace(startX, startY, dx, dy, startFace, startEl) {
     if (startFace === null) return null;
 
-    // Use the pre-resolved face element (avoids picking wrong B card)
-    const targetEl = startEl || null;
+    // Use the pre-resolved face element when available, otherwise fallback to nearest-face search
+    let targetEl = null;
+    if (startEl && document.contains(startEl)) {
+      targetEl = startEl;
+    }
+    if (!targetEl) {
+      const faceEls = this.cubeContainer.querySelectorAll('.cube-face');
+      let bestDist = Infinity;
+      faceEls.forEach(el => {
+        if (parseInt(el.dataset.faceIdx) === startFace) {
+          const r = el.getBoundingClientRect();
+          const cx = r.left + r.width / 2;
+          const cy = r.top + r.height / 2;
+          const dist = Math.sqrt((startX - cx) ** 2 + (startY - cy) ** 2);
+          if (dist < bestDist) { bestDist = dist; targetEl = el; }
+        }
+      });
+    }
     if (!targetEl) return null;
 
     const rect = targetEl.getBoundingClientRect();
