@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Cube Buddy">
+  <meta name="description" content="Rubik's Cube — free play">
+  <meta name="theme-color" content="#1a1a2e">
+  <base href="/cubebuddy-simple/">
+  <title>Simple Cubik</title>
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="stylesheet" href="styles.css?v=2.14.14">
+</head>
+<body>
+
+  <!-- ===== PLAY SCREEN ===== -->
+  <div id="play-screen" class="active">
+    <div class="play-inner">
+    <!-- Top bar -->
+    <div class="top-bar">
+      <div class="top-bar-left">
+        <span class="app-title-text">Simple Cubik</span>
+        <span class="version-badge">v2.14.14</span>
+      </div>
+      <div class="top-bar-right">
+        <span id="solved-badge" class="solved-badge" style="display:none">✅ Solved!</span>
+      </div>
+    </div>
+    <div class="view-tabs">
+      <button id="view-3d" class="view-tab active" data-view="3d">3D</button>
+      <button id="view-2d" class="view-tab" data-view="2d">2D</button>
+    </div>
+
+    <div class="play-hint">
+      <span>Tap middle cube to spin. Double tap to spin backwards. Swipe to turn.</span>
+    </div>
+    <!-- Move counter -->
+    <div class="moves-display">
+      <span>Moves: <span id="move-count">0</span></span>
+    </div>
+
+    <!-- Cube area -->
+    <div id="cube-area" class="cube-area">
+      <div id="cube-container" class="cube-container"></div>
+      <div id="cube-3d-container" class="cube-container" style="display:none;"></div>
+      <div id="camera-flash" class="camera-flash"></div>
+    </div>
+
+    <!-- Debug overlays -->
+    <div id="debug-overlay" style="display:none;position:fixed;top:0;left:0;right:0;background:rgba(0,0,0,0.88);color:#0f0;font-family:monospace;font-size:11px;padding:8px 10px;z-index:9999;pointer-events:none;max-height:40%;overflow-y:auto;line-height:1.5;white-space:pre-wrap;border-bottom:1px solid #0f0;"></div>
+    <div id="debug-overlay-bottom" style="display:none;position:fixed;bottom:0;left:0;right:0;background:rgba(0,0,0,0.88);color:#0f0;font-family:monospace;font-size:10px;padding:6px 8px;z-index:9999;pointer-events:none;max-height:35%;overflow-y:auto;line-height:1.4;white-space:pre-wrap;border-top:1px solid #0f0;"></div>
+
+    <!-- Bottom panel -->
+    <div class="bottom-panel">
+      <div class="mode-controls">
+        <div id="face-buttons" style="display:flex;align-items:center;gap:6px;">
+          <button class="bU">U</button>
+          <button class="bD">D</button>
+          <button class="bC">C</button>
+          <button class="bB">B</button>
+          <button class="bL">L</button>
+          <button class="bR">R</button>
+        </div>
+        <div id="controls-2d" style="display:none;align-items:center;gap:6px;">
+          <button id="full-btn" class="mode-tab active" title="Show all 9 faces">🔲 Full</button>
+          <button id="focus-btn" class="mode-tab" title="Show 5 main faces">🎯 Focus</button>
+        </div>
+      </div>
+
+      <div class="panel-actions">
+        <button id="undo-btn" class="undo-btn" disabled style="opacity:0.3">↩️ Undo</button>
+        <button id="mix-btn" class="mix-btn">🔀 Mix!</button>
+        <button id="scan-btn" class="mix-btn">📷 Scan</button>
+        <button id="debug-btn" style="pointer-events:auto;width:38px;height:38px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:#aaa;border-radius:8px;font-size:14px;cursor:pointer;touch-action:manipulation;padding:0;display:flex;align-items:center;justify-content:center;">🐛</button>
+      </div>
+    </div>
+
+    <!-- Snapshots row -->
+    <div id="snapshot-row" class="snapshot-row">
+      <div id="snapshot-container" class="snapshot-container"></div>
+    </div>
+    </div><!-- /play-inner -->
+  </div>
+
+  <!-- ===== SCAN OVERLAY ===== -->
+  <div id="scan-overlay" class="scan-overlay" style="display:none;">
+    <div class="scan-header">
+      <button id="scan-back-btn" class="scan-back-btn">‹ Back</button>
+      <span id="scan-title" class="scan-title">Scan Cube Face</span>
+    </div>
+    <div id="scan-camera-container" class="scan-camera-container">
+      <video id="scan-video" class="scan-video" autoplay playsinline></video>
+      <canvas id="scan-canvas" class="scan-canvas" style="display:none;"></canvas>
+      <div id="scan-face-guide" class="scan-face-guide">
+        <div class="scan-grid-overlay">
+          <div class="scan-grid-cell"></div><div class="scan-grid-cell"></div><div class="scan-grid-cell"></div>
+          <div class="scan-grid-cell"></div><div class="scan-grid-cell scan-center"></div><div class="scan-grid-cell"></div>
+          <div class="scan-grid-cell"></div><div class="scan-grid-cell"></div><div class="scan-grid-cell"></div>
+        </div>
+        <div class="scan-face-label" id="scan-face-label">U</div>
+      </div>
+    </div>
+    <div class="scan-instructions" id="scan-instructions">
+      Hold your cube with the <strong id="scan-face-name">WHITE</strong> face toward the camera
+    </div>
+    <div class="scan-progress" id="scan-progress">
+      <span class="scan-dot" data-face="0">⬜</span>
+      <span class="scan-dot" data-face="1">🟨</span>
+      <span class="scan-dot" data-face="2">🟩</span>
+      <span class="scan-dot" data-face="3">🟦</span>
+      <span class="scan-dot" data-face="4">🟧</span>
+      <span class="scan-dot" data-face="5">🟥</span>
+    </div>
+    <div class="scan-actions">
+      <div id="scan-center-color" class="scan-center-color" style="display:none;"></div>
+      <div class="scan-btn-row">
+        <button id="scan-capture-btn" class="scan-capture-btn">📸 Capture</button>
+        <button id="scan-retry-btn" class="scan-retry-btn" style="display:none;">🔄 Retry</button>
+        <button id="scan-continue-btn" class="scan-continue-btn" style="display:none;">✅ Next Face</button>
+        <button id="scan-finish-btn" class="scan-finish-btn" style="display:none;">🎯 Start Solving!</button>
+      </div>
+    </div>
+    <div id="scan-net-preview" class="scan-net-preview" style="display:none;">
+      <div class="scan-net-header">
+        <button id="scan-net-back-btn" class="scan-back-btn">‹ Back</button>
+        <span class="scan-net-title">Detected Cube — tap to fix colors</span>
+      </div>
+      <div id="scan-net-grid" class="scan-net-grid"></div>
+      <div style="display:flex;gap:8px;justify-content:center;margin-top:8px;">
+        <button id="scan-cancel-btn" class="scan-cancel-btn">Cancel</button>
+        <button id="scan-import-btn" class="scan-import-btn">✅ Import & Play</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== CELEBRATION OVERLAY ===== -->
+  <div id="celebration-overlay" class="celebration-overlay" style="display:none;">
+    <div class="celebration-card">
+      <div id="celeb-msg" class="celebration-emojis">🎉🌟🎊</div>
+      <div class="celebration-msg">🎉 AMAZING! You solved it!</div>
+      <button id="ok-btn" class="ok-btn">OK!</button>
+    </div>
+  </div>
+
+  <!-- ===== CONFETTI ===== -->
+  <div id="confetti-container" class="confetti-container"></div>
+
+  <!-- Three.js CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+  <!-- Scripts -->
+  <script src="cube.js?v=2.14.14"></script>
+  <script src="cube-3d-view.js?v=2.14.14"></script>
+  <script src="cubebuddy-scanner.js?v=2.14.14"></script>
+  <script src="app.js?v=2.14.14"></script>
+</body>
+</html>
