@@ -715,6 +715,12 @@ class CubeBuddyApp {
             isCcw = isHorizontal ? swipeDir === 'right' : swipeDir !== 'down';
             // R face is mirrored — invert direction for vertical middle-col swipes
             if (touchStartFace === 5 && !isHorizontal) isCcw = !isCcw;
+            // B face horizontal: direction depends on target
+            if (touchStartFace === 3 && isHorizontal) {
+              // When targeting U: right=CCW, left=CW
+              // When targeting D: right=CW, left=CCW
+              isCcw = swipedFace === 'U' ? dx > 0 : dx < 0;
+            }
           }
           this._doMove(swipedFace, isCcw); // true = 3 CW turns = 1 CCW
         }
@@ -872,6 +878,26 @@ class CubeBuddyApp {
     // For horizontal swipes, the ROW matters (top/bottom edge).
     // For vertical swipes, the COLUMN matters (left/right edge).
     let targetFace = null;
+
+    // B face (back) needs special handling: horizontal edge swipes depend on position and direction
+    if (startFace === 3 && isHorizontal && targetFace === null) {
+      // Bottom row (row=2): left → D (any column)
+      if (row === 2 && dx < 0) {
+        targetFace = 1; // D
+      }
+      // B left col (col=0): right → U
+      else if (col === 0 && dx > 0) {
+        targetFace = 0; // U
+      }
+      // B right col (col=2): left → U, right → D
+      else if (col === 2) {
+        targetFace = dx < 0 ? 0 : 1; // left→U, right→D
+      }
+      // Top row (row=0) middle col: right → U
+      else if (row === 0 && dx > 0) {
+        targetFace = 0; // U
+      }
+    }
 
     // B face position-specific adjacency — REMOVED, too complex with 4 B card positions
     // B face swipes fall through to standard ADJACENT (self-turn = B face turns)
