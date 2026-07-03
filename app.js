@@ -858,10 +858,10 @@ class CubeBuddyApp {
         col0: 2, // left col → F
         col2: 3, // right col → B
       },
-      3: { // B (back face) — cross net: B below D, L left, R right
+      3: { // B (back face) — cross net: B below D, L right, R left (mirrored)
         row0: 1, // top row → D
-        col0: 4, // left col → L
-        col2: 5, // right col → R
+        col0: 5, // left col → R (B is mirrored: left edge = R)
+        col2: 4, // right col → L (B is mirrored: right edge = L)
       },
     };
 
