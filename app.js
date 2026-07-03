@@ -736,8 +736,8 @@ class CubeBuddyApp {
                 // U: right=CW, left=CCW. D: right=CCW, left=CW.
                 isCcw = swipedFace === 'U' ? dx < 0 : dx > 0;
               } else {
-                // L: down=CW (isCcw=false), up=CCW. R: down=CCW, up=CW.
-                isCcw = swipedFace === 'L' ? dy < 0 : dy > 0;
+                // R: down=CW, up=CCW. L: down=CCW, up=CW.
+                isCcw = swipedFace === 'R' ? dy < 0 : dy > 0;
               }
             }
           }
@@ -924,9 +924,9 @@ class CubeBuddyApp {
           targetFace = 1; // D
         }
       } else {
-        // Vertical: native col 0 = L, native col 2 = R
-        if (nativeCol === 0) targetFace = 4; // L
-        else if (nativeCol === 2) targetFace = 5; // R
+        // Vertical: native col 0 = R, native col 2 = L (B face is back, reversed)
+        if (nativeCol === 0) targetFace = 5; // R
+        else if (nativeCol === 2) targetFace = 4; // L
       }
     }
 
