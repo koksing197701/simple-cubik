@@ -195,7 +195,6 @@ class CubeBuddyApp {
 
   _init3D() {
     if (this._cube3d) {
-      this._cube3d.resetView();
       this._cube3d.rebuild();
       this._cube3d.moves = this.moves;
       this._ensure3DDebug();
