@@ -198,7 +198,7 @@ class CubeBuddyApp {
 
   _applyTheme(theme) {
     // Remove all theme classes
-    document.body.classList.remove('theme-dark', 'theme-amber', 'theme-blue', 'theme-green', 'theme-purple');
+    document.body.classList.remove('theme-dark', 'theme-amber', 'theme-blue', 'theme-light', 'theme-purple');
     if (theme !== 'default') {
       document.body.classList.add(`theme-${theme}`);
     }
