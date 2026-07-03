@@ -420,6 +420,10 @@ class CubeBuddyApp {
       faceSpecs = FACE_SPECS_CLASSIC;
       widthDivisor = 17;
     }
+    // Compute row range for dynamic centering and height divisor
+    const rows = faceSpecs.map(s => s.row);
+    const minRow = Math.min(...rows);
+    const maxRow = Math.max(...rows);
     const rawSize = Math.min(availW / widthDivisor, availH / ((maxRow - minRow + 1) * 3.5 + 0.5));
     const stickerSize = Math.floor(Math.min(rawSize, 110));
     if (stickerSize < 10) return;
@@ -442,9 +446,6 @@ class CubeBuddyApp {
 
     const cx = availW / 2;
     // Calculate cy to vertically center all faces in the content area
-    const rows = faceSpecs.map(s => s.row);
-    const minRow = Math.min(...rows);
-    const maxRow = Math.max(...rows);
     const midRow = (minRow + maxRow) / 2;
     const cy = availH / 2 - (midRow - 1) * facePitch;
 
