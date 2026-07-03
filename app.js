@@ -491,6 +491,8 @@ class CubeBuddyApp {
     faceEl.dataset.cy = cy;
     const facePitch = faceWidth + (stickerSize * 0.5); // faceWidth + faceMargin
     faceEl.dataset.facePitch = facePitch;
+    faceEl.dataset.mirror = mirror ? '1' : '0';
+    faceEl.dataset.swapRows = swapRows ? '1' : '0';
     faceEl.style.position = 'absolute';
 
     // 3x3 sticker grid
@@ -601,9 +603,7 @@ class CubeBuddyApp {
           // Cross view B (single), Full view UB/DB (B top/B real)
           if (touchStartFace === 3) {
             // Check the actual face element's rendering spec
-            if (faceEl && (this._focusMode === 'cross' || 
-                (faceEl.dataset.bSpec && (faceEl.dataset.bSpec === 'mirror-swap' || 
-                 parseInt(faceEl.dataset.gridRow) === -1 || parseInt(faceEl.dataset.gridRow) === 3)))) {
+            if (faceEl && faceEl.dataset.swapRows === '1' && faceEl.dataset.mirror === '1') {
               displayRow = 2 - cell.row;
               displayCol = 2 - cell.col;
             }
