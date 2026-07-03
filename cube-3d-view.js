@@ -25,7 +25,7 @@ class CubeBuddy3D {
     const h = container.clientHeight || 400;
 
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x1a1a2e);
+    this.scene.background = new THREE.Color(0xe0d8ec);
 
     this.camera = new THREE.PerspectiveCamera(35, w / h, 0.1, 100);
     this.camera.position.set(4.18, 3.14, 5.23);
@@ -33,12 +33,11 @@ class CubeBuddy3D {
 
     this.spriteLabels = [];
 
-    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    this.renderer = new THREE.WebGLRenderer({ antialias: true });
     this.renderer.setSize(w, h);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    this.renderer.setClearColor(0xe0d8ec, 1);
     container.appendChild(this.renderer.domElement);
 
     // Ambient-only lighting — consistent colors from any angle, no shadow variation
