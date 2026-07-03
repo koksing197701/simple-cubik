@@ -591,15 +591,22 @@ class CubeBuddyApp {
       touchStartFace = this._hitTestFace(x, y); // which face the touch started on
       if (touchStartFace !== null) {
         // Resolve which cell (row,col) was touched within the face
-        const cell = this._resolveCell(x, y, touchStartFace);
-        if (cell) {
+        const cellResult = this._resolveCell(x, y, touchStartFace);
+        if (cellResult) {
+          const { cell, faceEl } = cellResult;
           // Convert cell coords to native face coords if swapRows/mirror are applied
           let displayRow = cell.row;
           let displayCol = cell.col;
-          // Cross view B uses swapRows+mirror; Classic B cards use various combos
+          // Faces with swapRows+mirror need coordinate inversion:
+          // Cross view B (single), Full view UB/DB (B top/B real)
           if (touchStartFace === 3) {
-            displayRow = 2 - cell.row;
-            displayCol = 2 - cell.col;
+            // Check the actual face element's rendering spec
+            if (faceEl && (this._focusMode === 'cross' || 
+                (faceEl.dataset.bSpec && (faceEl.dataset.bSpec === 'mirror-swap' || 
+                 parseInt(faceEl.dataset.gridRow) === -1 || parseInt(faceEl.dataset.gridRow) === 3)))) {
+              displayRow = 2 - cell.row;
+              displayCol = 2 - cell.col;
+            }
           }
           this._debugLog(`2D DOWN: ${['U','D','F','B','L','R'][touchStartFace]}(${displayRow},${displayCol})`);
         } else {
@@ -803,12 +810,20 @@ class CubeBuddyApp {
   _resolveSwipeOnFace(startX, startY, dx, dy, startFace) {
     if (startFace === null) return null;
 
-    // Get the face's DOM element
+    // Get the face's DOM element — find closest to swipe start
     const faceEls = this.cubeContainer.querySelectorAll('.cube-face');
     let targetEl = null;
+    let bestDist = Infinity;
     faceEls.forEach(el => {
       if (parseInt(el.dataset.faceIdx) === startFace) {
-        targetEl = el;
+        const rect = el.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        const dist = Math.sqrt((startX - cx) ** 2 + (startY - cy) ** 2);
+        if (dist < bestDist) {
+          bestDist = dist;
+          targetEl = el;
+        }
       }
     });
     if (!targetEl) return null;
@@ -1002,11 +1017,20 @@ class CubeBuddyApp {
   }
 
   _resolveCell(clientX, clientY, faceIdx) {
-    const faceEls = this.cubeContainer.querySelectorAll('.cube-face');
+    // Find the face element closest to the click position
     let targetEl = null;
+    let bestDist = Infinity;
+    const faceEls = this.cubeContainer.querySelectorAll('.cube-face');
     faceEls.forEach(el => {
       if (parseInt(el.dataset.faceIdx) === faceIdx) {
-        targetEl = el;
+        const rect = el.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        const dist = Math.sqrt((clientX - cx) ** 2 + (clientY - cy) ** 2);
+        if (dist < bestDist) {
+          bestDist = dist;
+          targetEl = el;
+        }
       }
     });
     if (!targetEl) return null;
@@ -1024,7 +1048,7 @@ class CubeBuddyApp {
     const localY = clientY - rect.top - insetY;
     const col = Math.max(0, Math.min(2, Math.floor(localX / (innerW / 3))));
     const row = Math.max(0, Math.min(2, Math.floor(localY / (innerH / 3))));
-    return { row, col };
+    return { cell: { row, col }, faceEl: targetEl };
   }
 
   _doMove(move, isDoubleTap = false) {
