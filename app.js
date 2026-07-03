@@ -593,7 +593,15 @@ class CubeBuddyApp {
         // Resolve which cell (row,col) was touched within the face
         const cell = this._resolveCell(x, y, touchStartFace);
         if (cell) {
-          this._debugLog(`2D DOWN: ${['U','D','F','B','L','R'][touchStartFace]}(${cell.row},${cell.col})`);
+          // Convert cell coords to native face coords if swapRows/mirror are applied
+          let displayRow = cell.row;
+          let displayCol = cell.col;
+          // Cross view B uses swapRows+mirror; Classic B cards use various combos
+          if (touchStartFace === 3) {
+            displayRow = 2 - cell.row;
+            displayCol = 2 - cell.col;
+          }
+          this._debugLog(`2D DOWN: ${['U','D','F','B','L','R'][touchStartFace]}(${displayRow},${displayCol})`);
         } else {
           this._debugLog(`2D DOWN: ${['U','D','F','B','L','R'][touchStartFace]} at (${x.toFixed(0)},${y.toFixed(0)})`);
         }
