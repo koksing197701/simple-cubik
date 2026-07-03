@@ -35,18 +35,18 @@ const FACE_SPECS_FOCUS = [
   { faceIdx: 1, row: 2, col: 1, mirror: false, swapRows: false }, // D
 ];
 
-// Cross view: 6 faces in true cross net — B at top, no extra B cards
-//   Row -1: [B]
+// Cross view: 6 faces in true cross net — B at bottom, no extra B cards
 //   Row  0: [U]
 //   Row  1: [L][F][R]
 //   Row  2: [D]
+//   Row  3: [B]
 const FACE_SPECS_CROSS = [
-  { faceIdx: 3, row: -1, col: 1, mirror: false, swapRows: false }, // B (identity, no mirror)
   { faceIdx: 0, row: 0, col: 1, mirror: false, swapRows: false }, // U
   { faceIdx: 4, row: 1, col: 0, mirror: false, swapRows: false }, // L
   { faceIdx: 2, row: 1, col: 1, mirror: false, swapRows: false }, // F
   { faceIdx: 5, row: 1, col: 2, mirror: false, swapRows: false }, // R
   { faceIdx: 1, row: 2, col: 1, mirror: false, swapRows: false }, // D
+  { faceIdx: 3, row: 3, col: 1, mirror: false, swapRows: false }, // B (identity, no mirror)
 ];
 
 const FACE_BORDER_COLORS = ['#FAFAFA', '#FFD500', '#4CAF50', '#2196F3', '#FF7500', '#F44336'];
