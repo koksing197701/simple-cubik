@@ -717,6 +717,23 @@ class CubeBuddyApp {
             }
             // Middle column with vertical swipe or middle row with horizontal swipe → fall through to base rule
             if (edgeKey && ((isHorizontal && row === 1) || (!isHorizontal && col === 1))) edgeKey = null;
+            // Restrict corner/mid-edge cells to one swipe axis to avoid ambiguity
+            // Each cell has only one logical edge direction:
+            //   (0,0)→right or down, (0,2)→left or down, (2,0)→right or up, (2,2)→left or up
+            //   (0,1)→down only, (2,1)→up only, (1,0)→right only, (1,2)→left only
+            if (edgeKey !== null) {
+              const allowedKey = {
+                '0,0': null, // corner — both axes allowed
+                '0,2': null,
+                '2,0': null,
+                '2,2': null,
+                '0,1': 'row2', // down only
+                '2,1': 'row0', // up only
+                '1,0': 'col2', // right only
+                '1,2': 'col0', // left only
+              }[row+','+col];
+              if (allowedKey !== null && edgeKey !== allowedKey) edgeKey = null;
+            }
             // Middle → turning the start face itself, use base rule
           }
           let isCcw;
