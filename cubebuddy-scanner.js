@@ -1,7 +1,6 @@
 /* ============================================================
-   CubeBuddy Kids — Camera Scanner Module  v2.1.0
-   Scan a real Rubik's Cube through camera, detect colors,
-   and import the state into the app.
+   CubeBuddy — Camera Scanner Module  v2.2.0
+   Uses k-means clustering for lighting-adaptive color detection.
    ============================================================ */
 
 /** Face order: U(0), D(1), F(2), B(3), L(4), R(5) */
@@ -9,94 +8,144 @@ const FACE_LABELS = ['U','D','F','B','L','R'];
 const FACE_NAMES = ['WHITE','YELLOW','GREEN','BLUE','ORANGE','RED'];
 const FACE_EMOJIS = ['⬜','🟨','🟩','🟦','🟧','🟥'];
 
-/** Default RGB centers for each face color (used when no camera) */
-const DEFAULT_COLORS = [
-  [255,255,255], // 0: White
-  [255,255,0],   // 1: Yellow
-  [0,200,0],     // 2: Green
-  [0,0,255],     // 3: Blue
-  [255,165,0],   // 4: Orange
-  [255,0,0],     // 5: Red
+/** Reference RGB centroids for standard Rubik's cube colors (for initialization) */
+const REFERENCE_COLORS = [
+  [220, 220, 220], // 0: White
+  [255, 200, 0],   // 1: Yellow
+  [0, 180, 0],     // 2: Green
+  [0, 80, 255],    // 3: Blue
+  [255, 120, 0],   // 4: Orange
+  [200, 0, 0],     // 5: Red
 ];
 
 /**
- * Normalize a color to one of 6 face colors using HSV comparison.
- * Returns face index (0-5).
+ * Euclidean distance squared between two RGB colors (for performance).
  */
-function matchColor(r, g, b, centerHue) {
-  // Convert RGB to HSV
-  const rr = r / 255;
-  const gg = g / 255;
-  const bb = b / 255;
+function colorDistSq(a, b) {
+  const dr = a[0] - b[0], dg = a[1] - b[1], db = a[2] - b[2];
+  return dr*dr + dg*dg + db*db;
+}
 
-  const max = Math.max(rr, gg, bb);
-  const min = Math.min(rr, gg, bb);
-  const delta = max - min;
+/**
+ * Assign each pixel to the nearest centroid.
+ * Returns an array of cluster indices.
+ */
+function assignClusters(pixels, centroids) {
+  return pixels.map(p => {
+    let best = 0, bestDist = colorDistSq(p, centroids[0]);
+    for (let k = 1; k < centroids.length; k++) {
+      const d = colorDistSq(p, centroids[k]);
+      if (d < bestDist) { bestDist = d; best = k; }
+    }
+    return best;
+  });
+}
 
-  let h = 0;
-  if (delta > 0.01) {
-    if (max === rr) {
-      h = 60 * (((gg - bb) / delta) % 6);
-    } else if (max === gg) {
-      h = 60 * (((bb - rr) / delta) + 2);
+/**
+ * Recompute centroids as the mean of all pixels assigned to each cluster.
+ * Returns new centroids. If a cluster gets 0 pixels, keep its old centroid.
+ */
+function recomputeCentroids(pixels, assignments, k, oldCentroids) {
+  const sums = Array.from({length: k}, () => [0, 0, 0]);
+  const counts = new Array(k).fill(0);
+  for (let i = 0; i < pixels.length; i++) {
+    const c = assignments[i];
+    sums[c][0] += pixels[i][0];
+    sums[c][1] += pixels[i][1];
+    sums[c][2] += pixels[i][2];
+    counts[c]++;
+  }
+  const newCentroids = [];
+  for (let c = 0; c < k; c++) {
+    if (counts[c] > 0) {
+      newCentroids.push([
+        Math.round(sums[c][0] / counts[c]),
+        Math.round(sums[c][1] / counts[c]),
+        Math.round(sums[c][2] / counts[c]),
+      ]);
     } else {
-      h = 60 * (((rr - gg) / delta) + 4);
+      newCentroids.push([...oldCentroids[c]]); // keep old
     }
   }
-  if (h < 0) h += 360;
+  return newCentroids;
+}
 
-  const s = max > 0.01 ? delta / max : 0;
-  const v = max;
+/**
+ * Run k-means clustering for up to maxIter iterations.
+ * Stops early when assignments stabilize.
+ */
+function kMeans(pixels, k, initialCentroids, maxIter = 20) {
+  let centroids = initialCentroids.map(c => [...c]);
+  let prevAssignments = null;
+  for (let iter = 0; iter < maxIter; iter++) {
+    const assignments = assignClusters(pixels, centroids);
+    if (prevAssignments && assignments.every((a, i) => a === prevAssignments[i])) {
+      break; // converged
+    }
+    centroids = recomputeCentroids(pixels, assignments, k, centroids);
+    prevAssignments = assignments;
+  }
+  return centroids;
+}
 
-  // === White detection ===
-  const rgbDiff = max * 255 - min * 255;
-  if (rgbDiff < 35 && v > 0.7) return 0; // White
-  if (s < 0.25) {
-    if (v > 0.5) return 0; // White
-    return 0;
+/**
+ * Detect colors using k-means clustering.
+ * Takes raw pixel samples (one per sticker cell, averaged RGB).
+ * Returns a 9-element array of face indices (0-5).
+ *
+ * How it works:
+ * 1. Collect all 9 sticker RGB samples
+ * 2. Run k-means with k=6 to find the 6 color clusters
+ * 3. Match each cluster to a face color by comparing centroids to reference colors
+ * 4. Assign each sticker cell to the face color of its nearest cluster
+ */
+function detectColors(stickerSamples) {
+  // Run k-means with 6 clusters using reference colors as initialization
+  const centroids = kMeans(stickerSamples, 6, REFERENCE_COLORS);
+
+  // Compute hue and saturation for each centroid
+  function rgbToHueSat(rgb) {
+    const r = rgb[0]/255, g = rgb[1]/255, b = rgb[2]/255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b), delta = max - min;
+    const sat = max > 0.01 ? (max - min) / max : 0;
+    if (delta < 0.01) return { h: -1, s: sat };
+    let h = 0;
+    if (max === r) h = 60 * (((g - b) / delta) % 6);
+    else if (max === g) h = 60 * (((b - r) / delta) + 2);
+    else h = 60 * (((r - g) / delta) + 4);
+    if (h < 0) h += 360;
+    return { h, s: sat };
   }
 
-  // === Dynamic orange/red boundary using center hue reference ===
-  // If we have a center hue reference, use it to shift the orange/red split
-  if (centerHue !== undefined && (h >= 10 && h < 55)) {
-    // Determine the orange-red split point based on where the center landed
-    // Under warm light, both orange and red shift toward higher hue
-    // Center should be white (hue=0), so centerHue tells us the lighting shift
-    const hueShift = centerHue; // how much the lighting shifted hues
-    // Adjust the orange/red boundary: normally at 20, shift it by the lighting
-    const boundary = 20 + Math.max(0, hueShift * 0.3);
-    if (h >= boundary && h < 50) return 4; // Orange
-    if ((h >= 10 && h < boundary) || h >= 340) return 5; // Red
-    // If between 50-55, use saturation tiebreak
-    if (h >= 50) return s > 0.55 ? 5 : 4;
+  const info = centroids.map(c => ({ c, ...rgbToHueSat(c) }));
+
+  // Find white cluster (lowest saturation)
+  let whiteIdx = 0;
+  let minSat = Infinity;
+  for (let i = 0; i < 6; i++) {
+    if (info[i].s < minSat) { minSat = info[i].s; whiteIdx = i; }
   }
 
-  // === Standard matching (no calibration or non-orange/red hues) ===
-  // Yellow: 40-80
-  if (h >= 40 && h < 80) {
-    // If centerHue is warm, widen yellow detection toward green
-    if (centerHue !== undefined && h >= 75) return s > 0.5 ? 1 : 2;
-    return 1;
+  // Remaining 5 clusters sorted by hue
+  const colored = [0,1,2,3,4,5].filter(i => i !== whiteIdx)
+    .sort((a, b) => info[a].h - info[b].h);
+
+  // The 5 colored clusters in hue order map to [Red, Orange, Yellow, Green, Blue]
+  // but we need to handle red's wrap-around (near 0° and 360°).
+  // Check if the lowest-hue cluster is red (hue < 30) or orange (hue 20-50)
+  const faceOrder = [5, 4, 1, 2, 3]; // Red, Orange, Yellow, Green, Blue
+
+  // Build cluster-to-face mapping
+  const clusterToFace = new Array(6);
+  clusterToFace[whiteIdx] = 0; // White
+
+  for (let i = 0; i < 5; i++) {
+    clusterToFace[colored[i]] = faceOrder[i];
   }
 
-  // Green: 85-170
-  if (h >= 85 && h < 170) return 2; // Green
-
-  // Blue: 185-265
-  if (h >= 185 && h < 265) return 3; // Blue
-
-  // Orange: 20-50 (without calibration)
-  if (h >= 20 && h < 50) return 4; // Orange
-
-  // Red: 0-20 or 330-360
-  if ((h >= 0 && h < 20) || h >= 330) return 5; // Red
-
-  // Fallback
-  if (h >= 170 && h < 185) return 2;
-  if (h >= 265 && h < 330) return 3;
-  if (h >= 50 && h < 85) return 1;
-
-  return 5;
+  // Assign each sticker to its cluster's face color
+  const assignments = assignClusters(stickerSamples, centroids);
+  return assignments.map(c => clusterToFace[c]);
 }
 
 /**
@@ -145,70 +194,41 @@ function autoWhiteBalance(ctx, w, h) {
 
 /**
  * Sample the 3x3 grid from a canvas at given center and spacing.
- * Uses multi-point sampling (5 points per cell: center + 4 corners) with voting
- * for better accuracy against glare and lighting.
- * Returns a flat 9-element array of face indices (0-5).
+ * Returns an array of 9 raw RGB samples (each as [r,g,b]).
+ * These are passed to detectColors() for k-means clustering.
  */
-function sampleGrid(ctx, cx, cy, spacing, centerHue) {
-  const grid = [];
+function sampleGrid(ctx, cx, cy, spacing) {
+  const samples = [];
   const sampleRadius = Math.max(3, Math.floor(spacing * 0.2));
-  const offsets = [
-    [0, 0],           // center
-    [-0.4, -0.4],     // top-left
-    [0.4, -0.4],      // top-right
-    [-0.4, 0.4],      // bottom-left
-    [0.4, 0.4],       // bottom-right
-  ];
 
   for (let row = 0; row < 3; row++) {
     for (let col = 0; col < 3; col++) {
       const x = cx + (col - 1) * spacing;
       const y = cy + (row - 1) * spacing;
 
-      // Multi-point sampling: vote among 5 sample points (center + 4 corners)
-      const votes = [];
-      for (const [ox, oy] of offsets) {
-        const sx = Math.round(x + ox * spacing);
-        const sy = Math.round(y + oy * spacing);
-        const pixelData = ctx.getImageData(
-          Math.round(sx - sampleRadius/2),
-          Math.round(sy - sampleRadius/2),
-          sampleRadius, sampleRadius
-        ).data;
+      // Average a small region at the cell center
+      const pixelData = ctx.getImageData(
+        Math.round(x - sampleRadius/2),
+        Math.round(y - sampleRadius/2),
+        sampleRadius, sampleRadius
+      ).data;
 
-        let vr = 0, vg = 0, vb = 0, vcount = 0;
-        for (let i = 0; i < pixelData.length; i += 4) {
-          vr += pixelData[i];
-          vg += pixelData[i+1];
-          vb += pixelData[i+2];
-          vcount++;
-        }
-        if (vcount > 0) {
-          vr /= vcount; vg /= vcount; vb /= vcount;
-        }
-        votes.push(matchColor(vr, vg, vb, centerHue));
+      let r = 0, g = 0, b = 0, count = 0;
+      for (let i = 0; i < pixelData.length; i += 4) {
+        r += pixelData[i];
+        g += pixelData[i+1];
+        b += pixelData[i+2];
+        count++;
       }
-
-      // Pick the most common vote (mode), fallback to center if tie
-      votes.sort();
-      let bestFace = votes[0], bestCount = 1, current = votes[0], currentCount = 1;
-      for (let v = 1; v < votes.length; v++) {
-        if (votes[v] === current) {
-          currentCount++;
-        } else {
-          if (currentCount > bestCount) {
-            bestCount = currentCount;
-            bestFace = current;
-          }
-          current = votes[v];
-          currentCount = 1;
-        }
+      if (count > 0) {
+        r = Math.round(r / count);
+        g = Math.round(g / count);
+        b = Math.round(b / count);
       }
-      if (currentCount > bestCount) bestFace = current;
-      grid.push(bestFace);
+      samples.push([r, g, b]);
     }
   }
-  return grid;
+  return samples;
 }
 
 /**
@@ -284,27 +304,10 @@ function captureFace(videoElement) {
   const cy = h / 2;
   const spacing = faceSize / 3;
 
-  // Sample the center cell first to get its hue for calibration
-  // The center should be a saturated color (the face being scanned)
-  // Its hue tells us how the lighting shifted colors
-  const centerPixel = ctx.getImageData(Math.round(cx), Math.round(cy), 1, 1).data;
-  const cr = centerPixel[0], cg = centerPixel[1], cb = centerPixel[2];
-  // Compute center hue for dynamic orange/red boundary adjustment
-  const cmax = Math.max(cr, cg, cb) / 255;
-  const cmin = Math.min(cr, cg, cb) / 255;
-  const cdelta = cmax - cmin;
-  let centerHue = undefined;
-  if (cdelta > 0.01) {
-    const crr = cr/255, cgg = cg/255, cbb = cb/255;
-    let ch = 0;
-    if (cmax === crr) ch = 60 * (((cgg - cbb) / cdelta) % 6);
-    else if (cmax === cgg) ch = 60 * (((cbb - crr) / cdelta) + 2);
-    else ch = 60 * (((crr - cgg) / cdelta) + 4);
-    if (ch < 0) ch += 360;
-    centerHue = ch;
-  }
-
-  const grid = sampleGrid(ctx, cx, cy, spacing, centerHue);
+  // Get raw RGB samples for all 9 sticker cells
+  const samples = sampleGrid(ctx, cx, cy, spacing);
+  // Use k-means clustering to detect colors adaptively
+  const grid = detectColors(samples);
   return grid;
 }
 
