@@ -135,8 +135,6 @@ class CubeBuddyApp {
 
   _setupPlay() {
     this.mixBtn.addEventListener('click', () => this._scramble());
-    this.centerBtn = document.getElementById('center-btn');
-    if (this.centerBtn) this.centerBtn.addEventListener('click', () => this._centerReset());
     this.scanBtn = document.getElementById('scan-btn');
     if (this.scanBtn) this.scanBtn.addEventListener('click', () => this._startScan());
     this.undoBtn.addEventListener('click', () => this._undo());
@@ -1210,26 +1208,6 @@ class CubeBuddyApp {
 
   resetCube() {
     this.cube.reset();
-    this.moves = 0;
-    this._history = [];
-    this.showCelebration = false;
-    this.solvedBadge.style.display = 'none';
-    this._renderCube();
-    this._updateControls();
-    this._sync3D();
-    this._saveToLocalStorage();
-  }
-
-  // Realign each face's stickers to match its center color
-  // After M/E/S slice moves, centers drift — this restores them
-  _centerReset() {
-    const s = this.cube._state;
-    for (let face = 0; face < 6; face++) {
-      const centerColor = s[face * 9 + 4];
-      for (let i = 0; i < 9; i++) {
-        s[face * 9 + i] = centerColor;
-      }
-    }
     this.moves = 0;
     this._history = [];
     this.showCelebration = false;
