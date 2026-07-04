@@ -1455,10 +1455,19 @@ class CubeBuddyApp {
     if (!existingMsg) {
       const hint = document.createElement('div');
       hint.className = 'scan-camera-hint';
-      hint.textContent = '📸 Hold the cube face flat toward camera';
       hint.style.cssText = 'position:absolute;bottom:80px;left:0;right:0;text-align:center;color:rgba(255,255,255,0.6);font-size:14px;background:rgba(0,0,0,0.5);padding:8px;z-index:10;pointer-events:none;';
       camContainer.appendChild(hint);
     }
+    // Orientation hints so captured faces align correctly in 3D/2D
+    const orientationHints = [
+      '⬜ U: White toward camera, Green on top, Red on left',
+      '🟨 D: Yellow toward camera, Green on top, Red on right',
+      '🟩 F: Green toward camera, White on top, Red on left',
+      '🟦 B: Blue toward camera, White on top, Orange on left',
+      '🟧 L: Orange toward camera, White on top, Green on left',
+      '🟥 R: Red toward camera, White on top, Blue on left',
+    ];
+    existingMsg.textContent = orientationHints[faceIdx] || '📸 Hold the cube face flat toward camera';
   }
 
   _setupScanButtons() {
