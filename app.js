@@ -1451,12 +1451,13 @@ class CubeBuddyApp {
     this._scanFaceLabel.textContent = FACE_LABELS[faceIdx];
     this._scanTitle.textContent = `Face ${faceIdx + 1} of 6`;
     const camContainer = document.getElementById('scan-camera-container');
-    const existingMsg = camContainer.querySelector('.scan-camera-hint');
+    let existingMsg = camContainer.querySelector('.scan-camera-hint');
     if (!existingMsg) {
       const hint = document.createElement('div');
       hint.className = 'scan-camera-hint';
       hint.style.cssText = 'position:absolute;bottom:80px;left:0;right:0;text-align:center;color:rgba(255,255,255,0.6);font-size:14px;background:rgba(0,0,0,0.5);padding:8px;z-index:10;pointer-events:none;';
       camContainer.appendChild(hint);
+      existingMsg = hint;
     }
     // Orientation hints so captured faces align correctly in 3D/2D
     const orientationHints = [
