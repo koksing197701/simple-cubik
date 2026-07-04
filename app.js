@@ -585,8 +585,14 @@ class CubeBuddyApp {
     const handleTap = (x, y, isDoubleTap) => {
       const face = this._hitTestFace(x, y);
       if (face !== null) {
-        const move = ['U', 'D', 'F', 'B', 'L', 'R'][face];
-        this._doMove(move, isDoubleTap);
+        // Only spin the face if tapping the center cell (1,1)
+        const cellResult = this._resolveCell(x, y, face);
+        if (cellResult && cellResult.cell.row === 1 && cellResult.cell.col === 1) {
+          const move = ['U', 'D', 'F', 'B', 'L', 'R'][face];
+          this._doMove(move, isDoubleTap);
+        } else {
+          this._debugLog(`2D TAP: non-center cell — ignored`);
+        }
       }
     };
 
