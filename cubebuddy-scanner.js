@@ -23,7 +23,7 @@ const DEFAULT_COLORS = [
  * Normalize a color to one of 6 face colors using HSV comparison.
  * Returns face index (0-5).
  */
-function matchColor(r, g, b) {
+function matchColor(r, g, b, centerHue) {
   // Convert RGB to HSV
   const rr = r / 255;
   const gg = g / 255;
@@ -48,43 +48,55 @@ function matchColor(r, g, b) {
   const s = max > 0.01 ? delta / max : 0;
   const v = max;
 
-  // === White detection: check if all channels are high and balanced ===
-  // Use RGB ratio check: if max-min < 30 and all > 180, it's white
+  // === White detection ===
   const rgbDiff = max * 255 - min * 255;
   if (rgbDiff < 35 && v > 0.7) return 0; // White
   if (s < 0.25) {
     if (v > 0.5) return 0; // White
-    return 0; // dark = white (user can fix in net preview)
+    return 0;
   }
 
-  // === Hue-based matching with overlap-safe boundaries ===
-  // Yellow: 40-80 (distinct from green and orange)
-  if (h >= 40 && h < 80) return 1; // Yellow
+  // === Dynamic orange/red boundary using center hue reference ===
+  // If we have a center hue reference, use it to shift the orange/red split
+  if (centerHue !== undefined && (h >= 10 && h < 55)) {
+    // Determine the orange-red split point based on where the center landed
+    // Under warm light, both orange and red shift toward higher hue
+    // Center should be white (hue=0), so centerHue tells us the lighting shift
+    const hueShift = centerHue; // how much the lighting shifted hues
+    // Adjust the orange/red boundary: normally at 20, shift it by the lighting
+    const boundary = 20 + Math.max(0, hueShift * 0.3);
+    if (h >= boundary && h < 50) return 4; // Orange
+    if ((h >= 10 && h < boundary) || h >= 340) return 5; // Red
+    // If between 50-55, use saturation tiebreak
+    if (h >= 50) return s > 0.55 ? 5 : 4;
+  }
 
-  // Green: 85-170 (wider to catch olive tones)
+  // === Standard matching (no calibration or non-orange/red hues) ===
+  // Yellow: 40-80
+  if (h >= 40 && h < 80) {
+    // If centerHue is warm, widen yellow detection toward green
+    if (centerHue !== undefined && h >= 75) return s > 0.5 ? 1 : 2;
+    return 1;
+  }
+
+  // Green: 85-170
   if (h >= 85 && h < 170) return 2; // Green
 
   // Blue: 185-265
   if (h >= 185 && h < 265) return 3; // Blue
 
-  // Orange: wider range 15-50 to catch warm lighting shifts
-  // Red: 0-15 or 330-360 — narrowed to avoid overlap with orange
-  if (h >= 15 && h < 50) {
-    // At the boundary (15-20, 40-50), use saturation to decide
-    // Orange typically has lower saturation than red in photos
-    if (h >= 20 && h < 40) return 4; // Orange
-    return (s > 0.6) ? 5 : 4; // high sat=red, low sat=orange
-  }
+  // Orange: 20-50 (without calibration)
+  if (h >= 20 && h < 50) return 4; // Orange
 
-  // Pure red zones
-  if ((h >= 0 && h < 15) || h >= 345) return 5; // Red
+  // Red: 0-20 or 330-360
+  if ((h >= 0 && h < 20) || h >= 330) return 5; // Red
 
   // Fallback
-  if (h >= 170 && h < 185) return 2; // green-cyan → green
-  if (h >= 265 && h < 330) return 3; // blue-ish
-  if (h >= 50 && h < 85) return 1; // yellow-ish
+  if (h >= 170 && h < 185) return 2;
+  if (h >= 265 && h < 330) return 3;
+  if (h >= 50 && h < 85) return 1;
 
-  return 5; // default red
+  return 5;
 }
 
 /**
@@ -137,7 +149,7 @@ function autoWhiteBalance(ctx, w, h) {
  * for better accuracy against glare and lighting.
  * Returns a flat 9-element array of face indices (0-5).
  */
-function sampleGrid(ctx, cx, cy, spacing) {
+function sampleGrid(ctx, cx, cy, spacing, centerHue) {
   const grid = [];
   const sampleRadius = Math.max(3, Math.floor(spacing * 0.2));
   const offsets = [
@@ -154,7 +166,6 @@ function sampleGrid(ctx, cx, cy, spacing) {
       const y = cy + (row - 1) * spacing;
 
       // Multi-point sampling: vote among 5 sample points (center + 4 corners)
-      // This handles glare and partial reflections better than a single averaged region
       const votes = [];
       for (const [ox, oy] of offsets) {
         const sx = Math.round(x + ox * spacing);
@@ -175,7 +186,7 @@ function sampleGrid(ctx, cx, cy, spacing) {
         if (vcount > 0) {
           vr /= vcount; vg /= vcount; vb /= vcount;
         }
-        votes.push(matchColor(vr, vg, vb));
+        votes.push(matchColor(vr, vg, vb, centerHue));
       }
 
       // Pick the most common vote (mode), fallback to center if tie
@@ -273,7 +284,27 @@ function captureFace(videoElement) {
   const cy = h / 2;
   const spacing = faceSize / 3;
 
-  const grid = sampleGrid(ctx, cx, cy, spacing);
+  // Sample the center cell first to get its hue for calibration
+  // The center should be a saturated color (the face being scanned)
+  // Its hue tells us how the lighting shifted colors
+  const centerPixel = ctx.getImageData(Math.round(cx), Math.round(cy), 1, 1).data;
+  const cr = centerPixel[0], cg = centerPixel[1], cb = centerPixel[2];
+  // Compute center hue for dynamic orange/red boundary adjustment
+  const cmax = Math.max(cr, cg, cb) / 255;
+  const cmin = Math.min(cr, cg, cb) / 255;
+  const cdelta = cmax - cmin;
+  let centerHue = undefined;
+  if (cdelta > 0.01) {
+    const crr = cr/255, cgg = cg/255, cbb = cb/255;
+    let ch = 0;
+    if (cmax === crr) ch = 60 * (((cgg - cbb) / cdelta) % 6);
+    else if (cmax === cgg) ch = 60 * (((cbb - crr) / cdelta) + 2);
+    else ch = 60 * (((crr - cgg) / cdelta) + 4);
+    if (ch < 0) ch += 360;
+    centerHue = ch;
+  }
+
+  const grid = sampleGrid(ctx, cx, cy, spacing, centerHue);
   return grid;
 }
 
