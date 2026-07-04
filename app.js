@@ -1576,7 +1576,6 @@ class CubeBuddyApp {
       return;
     }
     this._closeCamera();
-    this._scanTitle.textContent = 'Check the result!';
     const fullGrid = new Array(54);
     for (let face = 0; face < 6; face++) {
       if (this._scanFaces[face]) {
@@ -1596,6 +1595,8 @@ class CubeBuddyApp {
     balanced[30] = B[5]; balanced[31] = B[4]; balanced[32] = B[3];
     balanced[33] = B[2]; balanced[34] = B[1]; balanced[35] = B[0];
 
+    // Show net preview for review
+    this._scanTitle.textContent = 'Check & save!';
     this._scanNetPreview.style.display = 'flex';
     this._scanCameraContainer.style.display = 'none';
     this._scanInstructions.style.display = 'none';
@@ -1606,6 +1607,44 @@ class CubeBuddyApp {
       this._scanFinalGrid = updatedGrid;
     });
     this._scanFinalGrid = balanced;
+
+    // Hide the original Import button, show save-to-slot + load buttons
+    const importBtn = document.getElementById('scan-import-btn');
+    const cancelBtn = document.getElementById('scan-cancel-btn');
+    if (importBtn) importBtn.style.display = 'none';
+    if (cancelBtn) cancelBtn.textContent = 'Discard';
+
+    // Add slot save/load buttons
+    const slotRow = document.getElementById('scan-net-grid').parentElement;
+    let scanSlotRow = document.getElementById('scan-slot-row');
+    if (!scanSlotRow) {
+      scanSlotRow = document.createElement('div');
+      scanSlotRow.id = 'scan-slot-row';
+      scanSlotRow.style.cssText = 'display:flex;gap:8px;justify-content:center;margin-top:12px;flex-wrap:wrap;';
+      slotRow.parentElement.insertBefore(scanSlotRow, slotRow.nextSibling);
+    }
+    scanSlotRow.innerHTML = '';
+    for (let i = 0; i < 3; i++) {
+      const slotBtn = document.createElement('button');
+      const label = this._snapshots[i] ? this._snapshots[i].name : `Slot ${i+1}`;
+      slotBtn.textContent = `💾 Save to ${label}`;
+      slotBtn.style.cssText = 'padding:8px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.1);color:#fff;font-size:13px;cursor:pointer;touch-action:manipulation;';
+      slotBtn.onclick = () => {
+        this._snapshots[i] = {
+          name: `Scan ${new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}`,
+          state: [...this._scanFinalGrid],
+          moves: 0,
+        };
+        this._renderSnapshotSlots();
+        this._saveSnapshotsToStorage();
+        // Prompt to load
+        if (confirm(`Saved to ${this._snapshots[i].name}. Load it now?`)) {
+          this._loadSnapshot(i);
+          this._closeScan();
+        }
+      };
+      scanSlotRow.appendChild(slotBtn);
+    }
   }
 
   _importScan() {
