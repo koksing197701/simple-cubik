@@ -1470,10 +1470,10 @@ class CubeBuddyApp {
     ];
     existingMsg.textContent = orientationHints[faceIdx] || '📸 Hold the cube face flat toward camera';
 
-    // Also update the instruction text below camera window (orientation only, no duplicate face name)
+    // Simplify instruction below camera
     const hintParts = orientationHints[faceIdx].split(': ');
     if (hintParts.length > 1) {
-      this._scanInstructions.innerHTML = `Hold your cube with the <strong>${faceNames[faceIdx]}</strong> face toward the camera — ${hintParts[1]}<br><span style="font-size:12px;opacity:0.6;">💡 Good lighting = better scan. Avoid shadows or dim light.</span>`;
+      this._scanInstructions.innerHTML = `<strong>${faceNames[faceIdx]} face</strong> toward camera — ${hintParts[1]}<br><span style="font-size:11px;opacity:0.5;">💡 Good lighting = better scan</span>`;
     }
   }
 
@@ -1550,6 +1550,23 @@ class CubeBuddyApp {
         cell.style.background = COLORS[grid[i]];
         cell.style.border = '2px solid rgba(255,255,255,0.7)';
         cell.style.opacity = '0.85';
+        // Make cells tappable to cycle colors manually
+        cell.style.cursor = 'pointer';
+        cell.style.pointerEvents = 'auto';
+        cell.onclick = (e) => {
+          e.stopPropagation();
+          grid[i] = (grid[i] + 1) % 6;
+          cell.style.background = COLORS[grid[i]];
+          this._scanFaces[this._scanCurrentFace] = grid;
+          // Re-check center match
+          const centerColor = grid[4];
+          const expectedFace = this._scanCurrentFace;
+          const el = document.getElementById('scan-center-color');
+          if (el && centerColor === expectedFace) {
+            el.style.color = '#6BCB77';
+            el.innerHTML = '<span class="swatch" style="background:' + COLORS[centerColor] + '"></span> ✅ ' + COLOR_NAMES[centerColor] + ' — correct!';
+          }
+        };
       }
     });
     const centerIdx = 4;
