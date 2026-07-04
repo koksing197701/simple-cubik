@@ -1220,21 +1220,31 @@ class CubeBuddyApp {
     this._saveToLocalStorage();
   }
 
-  // Remap all stickers so each face shows its center color
-  // Read center of each face → build a color mapping → apply to every sticker
+  // Rearrange face groups so each face's stickers match its center color
+  // The snapshot of colors is preserved — only which face they belong to changes
   _alignFaces() {
     const s = this.cube._state;
     // Read current center of each face: centerOf[faceIdx] = colorIndex
+    // E.g., if U face (idx 0) has center color 2 (green), centerOf[0] = 2
     const centerOf = [0,1,2,3,4,5].map(f => s[f * 9 + 4]);
-    // Build inverse: which face should each color go to?
-    // colorToFace[colorIndex] = targetFaceIdx
-    const colorToFace = new Array(6);
-    for (let face = 0; face < 6; face++) {
-      colorToFace[centerOf[face]] = face;
+    // Build face permutation: for each face, which face's stickers should go there
+    // facePerm[targetFace] = sourceFace — the face whose stickers currently have the right center color
+    // If U center is green (idx 2), then F face's stickers (which have green center) should go to U position
+    const facePerm = new Array(6);
+    for (let targetFace = 0; targetFace < 6; targetFace++) {
+      // Which color should targetFace show? It should show its own center.
+      const expectedColor = targetFace;
+      // Which face currently has that color as its center?
+      const sourceFace = centerOf.indexOf(expectedColor);
+      facePerm[targetFace] = sourceFace;
     }
-    // Remap every sticker: sticker's color → new color for its target face
-    for (let i = 0; i < 54; i++) {
-      s[i] = colorToFace[s[i]];
+    // Apply permutation: move 9-sticker blocks to their new positions
+    const oldState = [...s];
+    for (let targetFace = 0; targetFace < 6; targetFace++) {
+      const sourceFace = facePerm[targetFace];
+      for (let i = 0; i < 9; i++) {
+        s[targetFace * 9 + i] = oldState[sourceFace * 9 + i];
+      }
     }
     this.moves = 0;
     this._history = [];
