@@ -1462,13 +1462,16 @@ class CubeBuddyApp {
     // Orientation hints so captured faces align correctly in 3D/2D
     const orientationHints = [
       '⬜ U: White toward camera, Green on top, Red on left',
-      '🟨 D: Yellow toward camera, Green on top, Red on right',
-      '🟩 F: Green toward camera, White on top, Red on left',
+      '🟨 D: Yellow toward camera, Green on top, Red on left',
+      '🟩 F: Green toward camera, White on top, Red on right',
       '🟦 B: Blue toward camera, White on top, Orange on left',
       '🟧 L: Orange toward camera, White on top, Green on left',
       '🟥 R: Red toward camera, White on top, Blue on left',
     ];
     existingMsg.textContent = orientationHints[faceIdx] || '📸 Hold the cube face flat toward camera';
+
+    // Also update the instruction text below camera window
+    this._scanInstructions.innerHTML = `Hold your cube with the <strong>${faceNames[faceIdx]}</strong> face toward the camera, and ${orientationHints[faceIdx].split(': ')[1] || ''}`;
   }
 
   _setupScanButtons() {
