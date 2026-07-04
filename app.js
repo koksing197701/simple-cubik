@@ -1462,7 +1462,7 @@ class CubeBuddyApp {
     // Orientation hints so captured faces align correctly in 3D/2D
     const orientationHints = [
       '⬜ U: White toward camera, Green on top, Red on left',
-      '🟨 D: Yellow toward camera, Green on top, Red on left',
+      '🟨 D: Yellow toward camera, Green on top, Orange on left',
       '🟩 F: Green toward camera, White on top, Red on right',
       '🟦 B: Blue toward camera, White on top, Orange on left',
       '🟧 L: Orange toward camera, White on top, Green on left',
