@@ -733,14 +733,18 @@ class CubeBuddyApp {
             if (touchStartFace === 5 && !isHorizontal) isCcw = !isCcw;
             // B face direction override
             if (touchStartFace === 3) {
+              // LB/RB (mirror=0) have identity mapping — invert M slice direction vs UB/DB (mirror=1, 180° rotated)
+              const bMirror = targetEl && targetEl.dataset.mirror === '1';
               if (isHorizontal) {
                 // U: right=CW, left=CCW. D: right=CCW, left=CW.
                 isCcw = swipedFace === 'U' ? dx < 0 : dx > 0;
               } else {
                 // L: down=CCW, up=CW. R: down=CW, up=CCW.
+                // Invert for LB/RB (identity mapping)
                 isCcw = swipedFace === 'L' ? dy > 0 : dy < 0;
+                if (!bMirror) isCcw = !isCcw;
               }
-              this._debugLog(`2D → dir: B override face=${swipedFace} dy=${dy} finalCcw=${isCcw}`);
+              this._debugLog(`2D → dir: B override face=${swipedFace} dy=${dy} mirror=${bMirror} finalCcw=${isCcw}`);
             }
           }
           this._doMove(swipedFace, isCcw); // true = 3 CW turns = 1 CCW
