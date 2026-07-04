@@ -1470,8 +1470,11 @@ class CubeBuddyApp {
     ];
     existingMsg.textContent = orientationHints[faceIdx] || '📸 Hold the cube face flat toward camera';
 
-    // Also update the instruction text below camera window
-    this._scanInstructions.innerHTML = `Hold your cube with the <strong>${faceNames[faceIdx]}</strong> face toward the camera, and ${orientationHints[faceIdx].split(': ')[1] || ''}`;
+    // Also update the instruction text below camera window (orientation only, no duplicate face name)
+    const hintParts = orientationHints[faceIdx].split(': ');
+    if (hintParts.length > 1) {
+      this._scanInstructions.innerHTML = `Hold your cube with the <strong>${faceNames[faceIdx]}</strong> face toward the camera — ${hintParts[1]}`;
+    }
   }
 
   _setupScanButtons() {
