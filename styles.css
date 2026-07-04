@@ -482,7 +482,7 @@ body {
   display: flex; align-items: center; justify-content: center;
   gap: 6px;
 }
-#undo-btn, #mix-btn, #scan-btn, #debug-btn {
+#undo-btn, #mix-btn, #scan-btn, #center-btn, #debug-btn {
   display: inline-flex; align-items: center; justify-content: center;
   gap: 4px;
   padding: 0 18px;
@@ -501,7 +501,7 @@ body {
   cursor: default; 
   pointer-events: none; 
 }
-#undo-btn:active:not(:disabled), #mix-btn:active, #scan-btn:active, #debug-btn:active {
+#undo-btn:active:not(:disabled), #mix-btn:active, #scan-btn:active, #center-btn:active, #debug-btn:active {
   transform: scale(0.94);
   background: var(--bg-soft);
 }
@@ -587,7 +587,7 @@ body {
 /* ===== RESPONSIVE ===== */
 @media (max-width: 420px) {
   .bU, .bD, .bC, .bB, .bL, .bR, .face-btn { width: 32px; height: 32px; font-size: 12px; }
-  #undo-btn, #mix-btn, #scan-btn { padding: 6px 14px; min-width: 60px; font-size: 11px; height: 32px; }
+  #undo-btn, #mix-btn, #scan-btn, #center-btn { padding: 6px 14px; min-width: 60px; font-size: 11px; height: 32px; }
   #debug-btn { width: 32px; height: 32px; min-width: 32px; font-size: 12px; }
   .cube-area { margin: 0 4px 28px; }
 }
