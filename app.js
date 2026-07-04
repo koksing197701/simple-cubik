@@ -726,19 +726,19 @@ class CubeBuddyApp {
             //   (2,1): up only
             //   (1,0): right only
             //   (1,2): left only
+            const forbidDir = targetEl ? {
+              // corner cells: forbid the two outward directions
+              '0,0': { 'right': false, 'left': true, 'down': false, 'up': true },
+              '0,2': { 'left': false, 'right': true, 'down': false, 'up': true },
+              '2,0': { 'right': false, 'left': true, 'up': false, 'down': true },
+              '2,2': { 'left': false, 'right': true, 'up': false, 'down': true },
+              // mid-edge cells: forbid the wrong axis
+              '0,1': { 'down': false, 'up': true, 'left': true, 'right': true },
+              '2,1': { 'up': false, 'down': true, 'left': true, 'right': true },
+              '1,0': { 'right': false, 'left': true, 'down': true, 'up': true },
+              '1,2': { 'left': false, 'right': true, 'down': true, 'up': true },
+            }[row+','+col] : null;
             if (edgeKey !== null) {
-              const forbidDir = {
-                // corner cells: forbid the two outward directions
-                '0,0': { 'right': false, 'left': true, 'down': false, 'up': true },
-                '0,2': { 'left': false, 'right': true, 'down': false, 'up': true },
-                '2,0': { 'right': false, 'left': true, 'up': false, 'down': true },
-                '2,2': { 'left': false, 'right': true, 'up': false, 'down': true },
-                // mid-edge cells: forbid the wrong axis
-                '0,1': { 'down': false, 'up': true, 'left': true, 'right': true },
-                '2,1': { 'up': false, 'down': true, 'left': true, 'right': true },
-                '1,0': { 'right': false, 'left': true, 'down': true, 'up': true },
-                '1,2': { 'left': false, 'right': true, 'down': true, 'up': true },
-              }[row+','+col];
               if (forbidDir && forbidDir[swipeDir]) edgeKey = null;
             }
             // If direction was forbidden, skip this swipe entirely (no base-rule fallback)

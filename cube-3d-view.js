@@ -313,6 +313,26 @@ class CubeBuddy3D {
           edgeEntry = adj[edgeName];
         }
 
+        // Forbid swipes in the "outward" direction for edge cells (same logic as 2D)
+        // Each cell should only swipe toward the cube's interior, not outward
+        if (edgeEntry && !edgeEntry.consumed) {
+          const swipeLogicalDir = isHoriz ? (faceRight ? 'right' : 'left') : (faceDown ? 'down' : 'up');
+          const forbid3D = {
+            '0,0': { 'right': false, 'left': true, 'down': false, 'up': true },
+            '0,2': { 'left': false, 'right': true, 'down': false, 'up': true },
+            '2,0': { 'right': false, 'left': true, 'up': false, 'down': true },
+            '2,2': { 'left': false, 'right': true, 'up': false, 'down': true },
+            '0,1': { 'down': false, 'up': true, 'left': true, 'right': true },
+            '2,1': { 'up': false, 'down': true, 'left': true, 'right': true },
+            '1,0': { 'right': false, 'left': true, 'down': true, 'up': true },
+            '1,2': { 'left': false, 'right': true, 'down': true, 'up': true },
+          }[row+','+col];
+          if (forbid3D && forbid3D[swipeLogicalDir]) {
+            edgeEntry = { consumed: true };
+            if (this._debugLog) this._debugLog(`→ FORBIDDEN DIR: ${swipeLogicalDir}`);
+          }
+        }
+
         if (this._debugLog) {
           const dirLabel = isHoriz ? (faceRight ? '→' : '←') : (faceDown ? '↓' : '↑');
           this._debugLog(`SWIPE: ${['U','D','F','B','L','R'][faceIdx]}(${row},${col}) ${dirLabel} dist=${dist.toFixed(0)}`);
