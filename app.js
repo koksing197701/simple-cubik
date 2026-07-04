@@ -717,23 +717,32 @@ class CubeBuddyApp {
             }
             // Middle column with vertical swipe or middle row with horizontal swipe → fall through to base rule
             if (edgeKey && ((isHorizontal && row === 1) || (!isHorizontal && col === 1))) edgeKey = null;
-            // Restrict corner/mid-edge cells to one swipe axis to avoid ambiguity
-            // Each cell has only one logical edge direction:
-            //   (0,0)→right or down, (0,2)→left or down, (2,0)→right or up, (2,2)→left or up
-            //   (0,1)→down only, (2,1)→up only, (1,0)→right only, (1,2)→left only
+            // Restrict cells to specific swipe axes/directions to avoid ambiguity
+            //   (0,0): right(→0,2) or down(→2,0) — not left or up
+            //   (0,2): left(→0,0) or down(→2,2) — not right or up
+            //   (2,0): right(→2,2) or up(→0,0) — not left or down
+            //   (2,2): left(→2,0) or up(→0,2) — not right or down
+            //   (0,1): down only
+            //   (2,1): up only
+            //   (1,0): right only
+            //   (1,2): left only
             if (edgeKey !== null) {
-              const allowedKey = {
-                '0,0': null, // corner — both axes allowed
-                '0,2': null,
-                '2,0': null,
-                '2,2': null,
-                '0,1': 'row2', // down only
-                '2,1': 'row0', // up only
-                '1,0': 'col2', // right only
-                '1,2': 'col0', // left only
+              const forbidDir = {
+                // corner cells: forbid the two outward directions
+                '0,0': { 'right': false, 'left': true, 'down': false, 'up': true },
+                '0,2': { 'left': false, 'right': true, 'down': false, 'up': true },
+                '2,0': { 'right': false, 'left': true, 'up': false, 'down': true },
+                '2,2': { 'left': false, 'right': true, 'up': false, 'down': true },
+                // mid-edge cells: forbid the wrong axis
+                '0,1': { 'down': false, 'up': true, 'left': true, 'right': true },
+                '2,1': { 'up': false, 'down': true, 'left': true, 'right': true },
+                '1,0': { 'right': false, 'left': true, 'down': true, 'up': true },
+                '1,2': { 'left': false, 'right': true, 'down': true, 'up': true },
               }[row+','+col];
-              if (allowedKey !== null && edgeKey !== allowedKey) edgeKey = null;
+              if (forbidDir && forbidDir[swipeDir]) edgeKey = null;
             }
+            // If direction was forbidden, skip this swipe entirely (no base-rule fallback)
+            if (forbidDir && forbidDir[swipeDir]) { swipedFace = null; }
             // Middle → turning the start face itself, use base rule
           }
           let isCcw;
