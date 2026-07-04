@@ -1630,21 +1630,21 @@ class CubeBuddyApp {
     if (importBtn) importBtn.style.display = 'none';
     if (cancelBtn) cancelBtn.textContent = 'Discard';
 
-    // Add slot save/load buttons
-    const slotRow = document.getElementById('scan-net-grid').parentElement;
+    // Add slot save/load buttons inside the net preview
+    const netPreview = document.getElementById('scan-net-preview');
     let scanSlotRow = document.getElementById('scan-slot-row');
     if (!scanSlotRow) {
       scanSlotRow = document.createElement('div');
       scanSlotRow.id = 'scan-slot-row';
       scanSlotRow.style.cssText = 'display:flex;gap:8px;justify-content:center;margin-top:12px;flex-wrap:wrap;';
-      slotRow.parentElement.insertBefore(scanSlotRow, slotRow.nextSibling);
+      netPreview.appendChild(scanSlotRow);
     }
     scanSlotRow.innerHTML = '';
     for (let i = 0; i < 3; i++) {
       const slotBtn = document.createElement('button');
       const label = this._snapshots[i] ? this._snapshots[i].name : `Slot ${i+1}`;
       slotBtn.textContent = `💾 Save to ${label}`;
-      slotBtn.style.cssText = 'padding:8px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.1);color:#fff;font-size:13px;cursor:pointer;touch-action:manipulation;';
+      slotBtn.style.cssText = 'padding:8px 14px;border-radius:8px;border:1px solid var(--border-card);background:var(--bg-card);color:var(--text-main);font-size:13px;font-weight:600;cursor:pointer;touch-action:manipulation;';
       slotBtn.onclick = () => {
         this._snapshots[i] = {
           name: `Scan ${new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}`,
