@@ -83,40 +83,113 @@ function matchColor(r, g, b) {
 }
 
 /**
+ * Auto white-balance a canvas region: scale RGB so bright areas approach true white.
+ * This corrects for warm/cool lighting before color matching.
+ */
+function autoWhiteBalance(ctx, w, h) {
+  // Sample the image to find the brightest pixel (assumed to be white)
+  const data = ctx.getImageData(0, 0, w, h).data;
+  let maxR = 0, maxG = 0, maxB = 0;
+  // Use top percentile to avoid single hot pixels
+  const pixels = [];
+  for (let i = 0; i < data.length; i += 16) {
+    const r = data[i], g = data[i+1], b = data[i+2];
+    pixels.push({ r, g, b, lum: r + g + b });
+  }
+  pixels.sort((a, b) => b.lum - a.lum);
+  // Take top 2% brightest pixels
+  const topCount = Math.max(3, Math.floor(pixels.length * 0.02));
+  let sumR = 0, sumG = 0, sumB = 0;
+  for (let i = 0; i < topCount; i++) {
+    sumR += pixels[i].r;
+    sumG += pixels[i].g;
+    sumB += pixels[i].b;
+  }
+  maxR = sumR / topCount;
+  maxG = sumG / topCount;
+  maxB = sumB / topCount;
+
+  // Scale factors — bring brightest pixel to 240 (not pure 255 to avoid overexposure)
+  const target = 240;
+  const scaleR = maxR > 20 ? target / maxR : 1;
+  const scaleG = maxG > 20 ? target / maxG : 1;
+  const scaleB = maxB > 20 ? target / maxB : 1;
+
+  // Apply to the whole canvas
+  const imageData = ctx.getImageData(0, 0, w, h);
+  const d = imageData.data;
+  for (let i = 0; i < d.length; i += 4) {
+    d[i]   = Math.min(255, d[i]   * scaleR);
+    d[i+1] = Math.min(255, d[i+1] * scaleG);
+    d[i+2] = Math.min(255, d[i+2] * scaleB);
+  }
+  ctx.putImageData(imageData, 0, 0);
+}
+
+/**
  * Sample the 3x3 grid from a canvas at given center and spacing.
+ * Uses multi-point sampling (5 points per cell: center + 4 corners) with voting
+ * for better accuracy against glare and lighting.
  * Returns a flat 9-element array of face indices (0-5).
  */
 function sampleGrid(ctx, cx, cy, spacing) {
   const grid = [];
-  const sampleSize = Math.max(4, Math.floor(spacing * 0.25));
+  const sampleRadius = Math.max(3, Math.floor(spacing * 0.2));
+  const offsets = [
+    [0, 0],           // center
+    [-0.4, -0.4],     // top-left
+    [0.4, -0.4],      // top-right
+    [-0.4, 0.4],      // bottom-left
+    [0.4, 0.4],       // bottom-right
+  ];
 
   for (let row = 0; row < 3; row++) {
     for (let col = 0; col < 3; col++) {
       const x = cx + (col - 1) * spacing;
       const y = cy + (row - 1) * spacing;
 
-      // Sample a small region and average
-      const pixelData = ctx.getImageData(
-        Math.round(x - sampleSize/2),
-        Math.round(y - sampleSize/2),
-        sampleSize, sampleSize
-      ).data;
+      // Multi-point sampling: vote among 5 sample points (center + 4 corners)
+      // This handles glare and partial reflections better than a single averaged region
+      const votes = [];
+      for (const [ox, oy] of offsets) {
+        const sx = Math.round(x + ox * spacing);
+        const sy = Math.round(y + oy * spacing);
+        const pixelData = ctx.getImageData(
+          Math.round(sx - sampleRadius/2),
+          Math.round(sy - sampleRadius/2),
+          sampleRadius, sampleRadius
+        ).data;
 
-      let r = 0, g = 0, b = 0, count = 0;
-      for (let i = 0; i < pixelData.length; i += 4) {
-        r += pixelData[i];
-        g += pixelData[i+1];
-        b += pixelData[i+2];
-        count++;
-      }
-      if (count > 0) {
-        r /= count;
-        g /= count;
-        b /= count;
+        let vr = 0, vg = 0, vb = 0, vcount = 0;
+        for (let i = 0; i < pixelData.length; i += 4) {
+          vr += pixelData[i];
+          vg += pixelData[i+1];
+          vb += pixelData[i+2];
+          vcount++;
+        }
+        if (vcount > 0) {
+          vr /= vcount; vg /= vcount; vb /= vcount;
+        }
+        votes.push(matchColor(vr, vg, vb));
       }
 
-      const faceIdx = matchColor(r, g, b);
-      grid.push(faceIdx);
+      // Pick the most common vote (mode), fallback to center if tie
+      votes.sort();
+      let bestFace = votes[0], bestCount = 1, current = votes[0], currentCount = 1;
+      for (let v = 1; v < votes.length; v++) {
+        if (votes[v] === current) {
+          currentCount++;
+        } else {
+          if (currentCount > bestCount) {
+            bestCount = currentCount;
+            bestFace = current;
+          }
+          current = votes[v];
+          currentCount = 1;
+        }
+      }
+      if (currentCount > bestCount) bestFace = current;
+      grid.push(bestFace);
     }
   }
   return grid;
@@ -184,6 +257,9 @@ function captureFace(videoElement) {
   canvas.height = h;
   const ctx = canvas.getContext('2d');
   ctx.drawImage(videoElement, 0, 0, w, h);
+
+  // Apply white balance to correct lighting before sampling
+  autoWhiteBalance(ctx, w, h);
 
   // Capture the central region (where the 3x3 grid is)
   // Scale: assume the face occupies about 60% of the frame
