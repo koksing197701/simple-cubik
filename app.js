@@ -731,6 +731,8 @@ class CubeBuddyApp {
 
             // R face is mirrored — invert direction for vertical middle-col swipes
             if (touchStartFace === 5 && !isHorizontal) isCcw = !isCcw;
+            // D face — invert S slice direction (horizontal mid-row swipes)
+            if (touchStartFace === 1 && isHorizontal) isCcw = !isCcw;
             // B face direction override
             if (touchStartFace === 3) {
               // LB/RB (mirror=0) have identity mapping — invert directions vs UB/DB (mirror=1, 180° rotated)
