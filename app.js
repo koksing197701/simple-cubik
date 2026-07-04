@@ -1473,7 +1473,7 @@ class CubeBuddyApp {
     // Also update the instruction text below camera window (orientation only, no duplicate face name)
     const hintParts = orientationHints[faceIdx].split(': ');
     if (hintParts.length > 1) {
-      this._scanInstructions.innerHTML = `Hold your cube with the <strong>${faceNames[faceIdx]}</strong> face toward the camera — ${hintParts[1]}`;
+      this._scanInstructions.innerHTML = `Hold your cube with the <strong>${faceNames[faceIdx]}</strong> face toward the camera — ${hintParts[1]}<br><span style="font-size:12px;opacity:0.6;">💡 Good lighting = better scan. Avoid shadows or dim light.</span>`;
     }
   }
 
