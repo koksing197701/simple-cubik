@@ -48,36 +48,41 @@ function matchColor(r, g, b) {
   const s = max > 0.01 ? delta / max : 0;
   const v = max;
 
-  // HSV ranges for each face color (tuned for typical Rubik's cubes)
-  // Hue is dominant, saturation helps separate white from pastels
-  // Value (brightness) is ignored to handle glare — only hue+saturation matter
-
-  // If saturation is very low, it's white or black/dark
-  if (s < 0.2) {
+  // === White detection: check if all channels are high and balanced ===
+  // Use RGB ratio check: if max-min < 30 and all > 180, it's white
+  const rgbDiff = max * 255 - min * 255;
+  if (rgbDiff < 35 && v > 0.7) return 0; // White
+  if (s < 0.25) {
     if (v > 0.5) return 0; // White
-    // Could be dark (black sticker)
-    return 0; // Default to white for very dark (user can fix)
+    return 0; // dark = white (user can fix in net preview)
   }
 
-  // Yellow: hue 45-75
+  // === Hue-based matching with overlap-safe boundaries ===
+  // Yellow: 40-80 (distinct from green and orange)
   if (h >= 40 && h < 80) return 1; // Yellow
 
-  // Green: hue 85-160
-  if (h >= 85 && h < 160) return 2; // Green
+  // Green: 85-170 (wider to catch olive tones)
+  if (h >= 85 && h < 170) return 2; // Green
 
-  // Blue: hue 180-260
-  if (h >= 180 && h < 260) return 3; // Blue
+  // Blue: 185-265
+  if (h >= 185 && h < 265) return 3; // Blue
 
-  // Red: hue 0-20 or 330-360
-  if ((h >= 0 && h < 20) || h >= 330) return 5; // Red
+  // Orange: wider range 15-50 to catch warm lighting shifts
+  // Red: 0-15 or 330-360 — narrowed to avoid overlap with orange
+  if (h >= 15 && h < 50) {
+    // At the boundary (15-20, 40-50), use saturation to decide
+    // Orange typically has lower saturation than red in photos
+    if (h >= 20 && h < 40) return 4; // Orange
+    return (s > 0.6) ? 5 : 4; // high sat=red, low sat=orange
+  }
 
-  // Orange: hue 20-40
-  if (h >= 20 && h < 40) return 4; // Orange
+  // Pure red zones
+  if ((h >= 0 && h < 15) || h >= 345) return 5; // Red
 
-  // Fallback — closest by hue
-  if (h >= 160 && h < 180) return 2; // between green and blue → green
-  if (h >= 260 && h < 330) return 3; // blue-ish
-  if (h >= 40 && h < 85) return 1; // yellow-ish
+  // Fallback
+  if (h >= 170 && h < 185) return 2; // green-cyan → green
+  if (h >= 265 && h < 330) return 3; // blue-ish
+  if (h >= 50 && h < 85) return 1; // yellow-ish
 
   return 5; // default red
 }
