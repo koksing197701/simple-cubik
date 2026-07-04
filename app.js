@@ -1463,10 +1463,10 @@ class CubeBuddyApp {
     const orientationHints = [
       '⬜ U: White toward camera, Green on top, Red on left',
       '🟨 D: Yellow toward camera, Green on top, Orange on left',
-      '🟩 F: Green toward camera, White on top, Red on right',
-      '🟦 B: Blue toward camera, White on top, Orange on left',
-      '🟧 L: Orange toward camera, White on top, Green on left',
-      '🟥 R: Red toward camera, White on top, Blue on left',
+      '🟩 F: Green toward camera, White on top, Orange on left',
+      '🟦 B: Blue toward camera, White on top, Red on left',
+      '🟧 L: Orange toward camera, White on top, Blue on left',
+      '🟥 R: Red toward camera, White on top, Green on left',
     ];
     existingMsg.textContent = orientationHints[faceIdx] || '📸 Hold the cube face flat toward camera';
 
