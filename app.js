@@ -585,14 +585,8 @@ class CubeBuddyApp {
     const handleTap = (x, y, isDoubleTap) => {
       const face = this._hitTestFace(x, y);
       if (face !== null) {
-        // Only spin the face if tapping the center cell (1,1)
-        const cellResult = this._resolveCell(x, y, face);
-        if (cellResult && cellResult.cell.row === 1 && cellResult.cell.col === 1) {
-          const move = ['U', 'D', 'F', 'B', 'L', 'R'][face];
-          this._doMove(move, isDoubleTap);
-        } else {
-          this._debugLog(`2D TAP: non-center cell — ignored`);
-        }
+        const move = ['U', 'D', 'F', 'B', 'L', 'R'][face];
+        this._doMove(move, isDoubleTap);
       }
     };
 
@@ -723,32 +717,6 @@ class CubeBuddyApp {
             }
             // Middle column with vertical swipe or middle row with horizontal swipe → fall through to base rule
             if (edgeKey && ((isHorizontal && row === 1) || (!isHorizontal && col === 1))) edgeKey = null;
-            // Restrict cells to specific swipe axes/directions to avoid ambiguity
-            //   (0,0): right(→0,2) or down(→2,0) — not left or up
-            //   (0,2): left(→0,0) or down(→2,2) — not right or up
-            //   (2,0): right(→2,2) or up(→0,0) — not left or down
-            //   (2,2): left(→2,0) or up(→0,2) — not right or down
-            //   (0,1): down only
-            //   (2,1): up only
-            //   (1,0): right only
-            //   (1,2): left only
-            const forbidDir = targetEl ? {
-              // corner cells: forbid the two outward directions
-              '0,0': { 'right': false, 'left': true, 'down': false, 'up': true },
-              '0,2': { 'left': false, 'right': true, 'down': false, 'up': true },
-              '2,0': { 'right': false, 'left': true, 'up': false, 'down': true },
-              '2,2': { 'left': false, 'right': true, 'up': false, 'down': true },
-              // mid-edge cells: forbid the wrong axis
-              '0,1': { 'down': false, 'up': true, 'left': true, 'right': true },
-              '2,1': { 'up': false, 'down': true, 'left': true, 'right': true },
-              '1,0': { 'right': false, 'left': true, 'down': true, 'up': true },
-              '1,2': { 'left': false, 'right': true, 'down': true, 'up': true },
-            }[row+','+col] : null;
-            if (edgeKey !== null) {
-              if (forbidDir && forbidDir[swipeDir]) edgeKey = null;
-            }
-            // If direction was forbidden, skip this swipe entirely (no base-rule fallback)
-            if (forbidDir && forbidDir[swipeDir]) { swipedFace = null; }
             // Middle → turning the start face itself, use base rule
           }
           let isCcw;
@@ -1252,31 +1220,21 @@ class CubeBuddyApp {
     this._saveToLocalStorage();
   }
 
-  // Rearrange face groups so each face's stickers match its center color
-  // The snapshot of colors is preserved — only which face they belong to changes
+  // Remap all stickers so each face shows its center color
+  // Read center of each face → build a color mapping → apply to every sticker
   _alignFaces() {
     const s = this.cube._state;
     // Read current center of each face: centerOf[faceIdx] = colorIndex
-    // E.g., if U face (idx 0) has center color 2 (green), centerOf[0] = 2
     const centerOf = [0,1,2,3,4,5].map(f => s[f * 9 + 4]);
-    // Build face permutation: for each face, which face's stickers should go there
-    // facePerm[targetFace] = sourceFace — the face whose stickers currently have the right center color
-    // If U center is green (idx 2), then F face's stickers (which have green center) should go to U position
-    const facePerm = new Array(6);
-    for (let targetFace = 0; targetFace < 6; targetFace++) {
-      // Which color should targetFace show? It should show its own center.
-      const expectedColor = targetFace;
-      // Which face currently has that color as its center?
-      const sourceFace = centerOf.indexOf(expectedColor);
-      facePerm[targetFace] = sourceFace;
+    // Build inverse: which face should each color go to?
+    // colorToFace[colorIndex] = targetFaceIdx
+    const colorToFace = new Array(6);
+    for (let face = 0; face < 6; face++) {
+      colorToFace[centerOf[face]] = face;
     }
-    // Apply permutation: move 9-sticker blocks to their new positions
-    const oldState = [...s];
-    for (let targetFace = 0; targetFace < 6; targetFace++) {
-      const sourceFace = facePerm[targetFace];
-      for (let i = 0; i < 9; i++) {
-        s[targetFace * 9 + i] = oldState[sourceFace * 9 + i];
-      }
+    // Remap every sticker: sticker's color → new color for its target face
+    for (let i = 0; i < 54; i++) {
+      s[i] = colorToFace[s[i]];
     }
     this.moves = 0;
     this._history = [];
@@ -1451,29 +1409,13 @@ class CubeBuddyApp {
     this._scanFaceLabel.textContent = FACE_LABELS[faceIdx];
     this._scanTitle.textContent = `Face ${faceIdx + 1} of 6`;
     const camContainer = document.getElementById('scan-camera-container');
-    let existingMsg = camContainer.querySelector('.scan-camera-hint');
+    const existingMsg = camContainer.querySelector('.scan-camera-hint');
     if (!existingMsg) {
       const hint = document.createElement('div');
       hint.className = 'scan-camera-hint';
+      hint.textContent = '📸 Hold the cube face flat toward camera';
       hint.style.cssText = 'position:absolute;bottom:80px;left:0;right:0;text-align:center;color:rgba(255,255,255,0.6);font-size:14px;background:rgba(0,0,0,0.5);padding:8px;z-index:10;pointer-events:none;';
       camContainer.appendChild(hint);
-      existingMsg = hint;
-    }
-    // Orientation hints so captured faces align correctly in 3D/2D
-    const orientationHints = [
-      '⬜ U: White toward camera, Green on top, Red on left',
-      '🟨 D: Yellow toward camera, Green on top, Orange on left',
-      '🟩 F: Green toward camera, White on top, Orange on left',
-      '🟦 B: Blue toward camera, White on top, Red on left',
-      '🟧 L: Orange toward camera, White on top, Blue on left',
-      '🟥 R: Red toward camera, White on top, Green on left',
-    ];
-    existingMsg.textContent = orientationHints[faceIdx] || '📸 Hold the cube face flat toward camera';
-
-    // Simplify instruction below camera
-    const hintParts = orientationHints[faceIdx].split(': ');
-    if (hintParts.length > 1) {
-      this._scanInstructions.innerHTML = `<strong>${faceNames[faceIdx]} face</strong> toward camera — ${hintParts[1]}<br><span style="font-size:11px;opacity:0.5;">💡 Good lighting = better scan</span>`;
     }
   }
 
@@ -1550,23 +1492,6 @@ class CubeBuddyApp {
         cell.style.background = COLORS[grid[i]];
         cell.style.border = '2px solid rgba(255,255,255,0.7)';
         cell.style.opacity = '0.85';
-        // Make cells tappable to cycle colors manually
-        cell.style.cursor = 'pointer';
-        cell.style.pointerEvents = 'auto';
-        cell.onclick = (e) => {
-          e.stopPropagation();
-          grid[i] = (grid[i] + 1) % 6;
-          cell.style.background = COLORS[grid[i]];
-          this._scanFaces[this._scanCurrentFace] = grid;
-          // Re-check center match
-          const centerColor = grid[4];
-          const expectedFace = this._scanCurrentFace;
-          const el = document.getElementById('scan-center-color');
-          if (el && centerColor === expectedFace) {
-            el.style.color = '#6BCB77';
-            el.innerHTML = '<span class="swatch" style="background:' + COLORS[centerColor] + '"></span> ✅ ' + COLOR_NAMES[centerColor] + ' — correct!';
-          }
-        };
       }
     });
     const centerIdx = 4;
@@ -1609,6 +1534,7 @@ class CubeBuddyApp {
       return;
     }
     this._closeCamera();
+    this._scanTitle.textContent = 'Check the result!';
     const fullGrid = new Array(54);
     for (let face = 0; face < 6; face++) {
       if (this._scanFaces[face]) {
@@ -1628,8 +1554,6 @@ class CubeBuddyApp {
     balanced[30] = B[5]; balanced[31] = B[4]; balanced[32] = B[3];
     balanced[33] = B[2]; balanced[34] = B[1]; balanced[35] = B[0];
 
-    // Show net preview for review
-    this._scanTitle.textContent = 'Check & save!';
     this._scanNetPreview.style.display = 'flex';
     this._scanCameraContainer.style.display = 'none';
     this._scanInstructions.style.display = 'none';
@@ -1640,44 +1564,6 @@ class CubeBuddyApp {
       this._scanFinalGrid = updatedGrid;
     });
     this._scanFinalGrid = balanced;
-
-    // Hide the original Import button, show save-to-slot + load buttons
-    const importBtn = document.getElementById('scan-import-btn');
-    const cancelBtn = document.getElementById('scan-cancel-btn');
-    if (importBtn) importBtn.style.display = 'none';
-    if (cancelBtn) cancelBtn.textContent = 'Discard';
-
-    // Add slot save/load buttons inside the net preview
-    const netPreview = document.getElementById('scan-net-preview');
-    let scanSlotRow = document.getElementById('scan-slot-row');
-    if (!scanSlotRow) {
-      scanSlotRow = document.createElement('div');
-      scanSlotRow.id = 'scan-slot-row';
-      scanSlotRow.style.cssText = 'display:flex;gap:8px;justify-content:center;margin-top:12px;flex-wrap:wrap;';
-      netPreview.appendChild(scanSlotRow);
-    }
-    scanSlotRow.innerHTML = '';
-    for (let i = 0; i < 3; i++) {
-      const slotBtn = document.createElement('button');
-      const label = this._snapshots[i] ? this._snapshots[i].name : `Slot ${i+1}`;
-      slotBtn.textContent = `💾 Save to ${label}`;
-      slotBtn.style.cssText = 'padding:8px 14px;border-radius:8px;border:1px solid var(--border-card);background:var(--bg-card);color:var(--text-main);font-size:13px;font-weight:600;cursor:pointer;touch-action:manipulation;';
-      slotBtn.onclick = () => {
-        this._snapshots[i] = {
-          name: `Scan ${new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}`,
-          state: [...this._scanFinalGrid],
-          moves: 0,
-        };
-        this._renderSnapshotSlots();
-        this._saveSnapshotsToStorage();
-        // Prompt to load
-        if (confirm(`Saved to ${this._snapshots[i].name}. Load it now?`)) {
-          this._loadSnapshot(i);
-          this._closeScan();
-        }
-      };
-      scanSlotRow.appendChild(slotBtn);
-    }
   }
 
   _importScan() {

@@ -482,7 +482,7 @@ body {
   display: flex; align-items: center; justify-content: center;
   gap: 6px;
 }
-#undo-btn, #mix-btn, #scan-btn, #center-btn, #debug-btn {
+#undo-btn, #mix-btn, #scan-btn, #debug-btn {
   display: inline-flex; align-items: center; justify-content: center;
   gap: 4px;
   padding: 0 18px;
@@ -501,7 +501,7 @@ body {
   cursor: default; 
   pointer-events: none; 
 }
-#undo-btn:active:not(:disabled), #mix-btn:active, #scan-btn:active, #center-btn:active, #debug-btn:active {
+#undo-btn:active:not(:disabled), #mix-btn:active, #scan-btn:active, #debug-btn:active {
   transform: scale(0.94);
   background: var(--bg-soft);
 }
@@ -587,7 +587,7 @@ body {
 /* ===== RESPONSIVE ===== */
 @media (max-width: 420px) {
   .bU, .bD, .bC, .bB, .bL, .bR, .face-btn { width: 32px; height: 32px; font-size: 12px; }
-  #undo-btn, #mix-btn, #scan-btn, #center-btn { padding: 6px 14px; min-width: 60px; font-size: 11px; height: 32px; }
+  #undo-btn, #mix-btn, #scan-btn { padding: 6px 14px; min-width: 60px; font-size: 11px; height: 32px; }
   #debug-btn { width: 32px; height: 32px; min-width: 32px; font-size: 12px; }
   .cube-area { margin: 0 4px 28px; }
 }
@@ -599,7 +599,7 @@ body {
 /* ===== SCAN OVERLAY ===== */
 .scan-overlay { position: fixed; inset: 0; z-index: 500; background: var(--bg-page); display: flex; flex-direction: column; color: var(--text-main); }
 .scan-header { display: flex; align-items: center; padding: 12px 16px; background: var(--bg-surface); border-bottom: 1px solid var(--border-light); z-index: 10; flex-shrink: 0; }
-.scan-back-btn { background: none; border: none; color: var(--text-main); font-size: 21px; font-weight: 700; cursor: pointer; padding: 12px 14px; margin: -8px; touch-action: manipulation; min-width: 48px; min-height: 48px; }
+.scan-back-btn { background: none; border: none; color: var(--text-main); font-size: 26px; font-weight: 700; cursor: pointer; padding: 12px 14px; margin: -8px; touch-action: manipulation; min-width: 48px; min-height: 48px; }
 .scan-title { font-size: 18px; font-weight: 700; margin-left: 12px; color: var(--text-main); }
 .scan-camera-container { flex: 1; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; background: #000; border-radius: 0; }
 .scan-video { width: 100%; height: 100%; object-fit: cover; }

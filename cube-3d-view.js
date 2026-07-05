@@ -273,8 +273,9 @@ class CubeBuddy3D {
         }
 
         // MID-ROW (1,0) or (1,2) — horizontal swipe across middle row
+        // Use screen-space isHoriz for orbit-independent edge detection
         if (row === 1 && col !== 1) {
-          if (isHoriz) {
+          if (Math.abs(dx) > Math.abs(dy)) {
             if (col === 0) {
               if (faceRight) { edgeEntry = adj.midLeft; edgeName = 'midLeft'; }
               else { edgeEntry = adj.left; edgeName = 'left'; }
@@ -285,8 +286,9 @@ class CubeBuddy3D {
           } else { edgeEntry = { consumed: true }; }
         }
         // MID-COL (0,1) or (2,1) — vertical swipe across middle column
+        // Use screen-space isHoriz for orbit-independent edge detection
         else if (col === 1 && row !== 1) {
-          if (!isHoriz) {
+          if (Math.abs(dx) <= Math.abs(dy)) {
             if (row === 0) {
               // B(3) 180° snap: B(0,1) vertical always→M slice
               if (faceIdx === 3 || faceDown) { edgeEntry = adj.midTop; edgeName = 'midTop'; }
@@ -303,33 +305,49 @@ class CubeBuddy3D {
             }
           } else { edgeEntry = { consumed: true }; }
         }
-        // CORNER
+        // CORNER - use screen-space direction mapped through face center projection
         else if (isCorner) {
-          if (isHoriz) {
-            edgeName = row === 0 ? 'top' : 'bottom';
-          } else {
-            edgeName = col === 0 ? 'left' : 'right';
+          // Project the face center to screen, use its direction from the sticker
+          // to determine which axis (horiz/vert) the user should be using
+          var centerMesh = this.stickerMeshes.find(function(m) {
+            return m.userData.isSticker && m.userData.faceIdx === faceIdx && m.userData.row === 1 && m.userData.col === 1;
+          });
+          if (centerMesh) {
+            var cp = new THREE.Vector3();
+            centerMesh.getWorldPosition(cp);
+            cp.project(this.camera);
+            var cr = this.renderer.domElement.getBoundingClientRect();
+            var cx = (cp.x * 0.5 + 0.5) * cr.width + cr.left;
+            var cy = (-cp.y * 0.5 + 0.5) * cr.height + cr.top;
+            // Project the CORNER sticker to screen
+            var cornerMesh = this.stickerMeshes.find(function(m) {
+              return m.userData.isSticker && m.userData.faceIdx === faceIdx && m.userData.row === row && m.userData.col === col;
+            });
+            if (cornerMesh) {
+              var wp = new THREE.Vector3();
+              cornerMesh.getWorldPosition(wp);
+              wp.project(this.camera);
+              var sx = (wp.x * 0.5 + 0.5) * cr.width + cr.left;
+              var sy = (-wp.y * 0.5 + 0.5) * cr.height + cr.top;
+              // Inward direction on screen
+              var ix = cx - sx, iy = cy - sy;
+              // Use the inward vector's dominant axis to choose edge
+              if (Math.abs(ix) > Math.abs(iy)) {
+                edgeName = row === 0 ? 'top' : 'bottom';
+              } else {
+                edgeName = col === 0 ? 'left' : 'right';
+              }
+              edgeEntry = adj[edgeName];
+            }
           }
-          edgeEntry = adj[edgeName];
-        }
-
-        // Forbid swipes in the "outward" direction for edge cells (same logic as 2D)
-        // Each cell should only swipe toward the cube's interior, not outward
-        if (edgeEntry && !edgeEntry.consumed) {
-          const swipeLogicalDir = isHoriz ? (faceRight ? 'right' : 'left') : (faceDown ? 'down' : 'up');
-          const forbid3D = {
-            '0,0': { 'right': false, 'left': true, 'down': false, 'up': true },
-            '0,2': { 'left': false, 'right': true, 'down': false, 'up': true },
-            '2,0': { 'right': false, 'left': true, 'up': false, 'down': true },
-            '2,2': { 'left': false, 'right': true, 'up': false, 'down': true },
-            '0,1': { 'down': false, 'up': true, 'left': true, 'right': true },
-            '2,1': { 'up': false, 'down': true, 'left': true, 'right': true },
-            '1,0': { 'right': false, 'left': true, 'down': true, 'up': true },
-            '1,2': { 'left': false, 'right': true, 'down': true, 'up': true },
-          }[row+','+col];
-          if (forbid3D && forbid3D[swipeLogicalDir]) {
-            edgeEntry = { consumed: true };
-            if (this._debugLog) this._debugLog(`→ FORBIDDEN DIR: ${swipeLogicalDir}`);
+          // Fallback: screen-space
+          if (!edgeEntry) {
+            if (Math.abs(dx) > Math.abs(dy)) {
+              edgeName = row === 0 ? 'top' : 'bottom';
+            } else {
+              edgeName = col === 0 ? 'left' : 'right';
+            }
+            edgeEntry = adj[edgeName];
           }
         }
 

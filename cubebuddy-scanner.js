@@ -1,6 +1,7 @@
 /* ============================================================
-   CubeBuddy — Camera Scanner Module  v2.2.0
-   Uses k-means clustering for lighting-adaptive color detection.
+   CubeBuddy Kids — Camera Scanner Module  v2.1.0
+   Scan a real Rubik's Cube through camera, detect colors,
+   and import the state into the app.
    ============================================================ */
 
 /** Face order: U(0), D(1), F(2), B(3), L(4), R(5) */
@@ -8,209 +9,97 @@ const FACE_LABELS = ['U','D','F','B','L','R'];
 const FACE_NAMES = ['WHITE','YELLOW','GREEN','BLUE','ORANGE','RED'];
 const FACE_EMOJIS = ['⬜','🟨','🟩','🟦','🟧','🟥'];
 
-/** Reference RGB centroids for standard Rubik's cube colors (for initialization) */
-const REFERENCE_COLORS = [
-  [220, 220, 220], // 0: White
-  [255, 200, 0],   // 1: Yellow
-  [0, 180, 0],     // 2: Green
-  [0, 80, 255],    // 3: Blue
-  [255, 120, 0],   // 4: Orange
-  [200, 0, 0],     // 5: Red
+/** Default RGB centers for each face color (used when no camera) */
+const DEFAULT_COLORS = [
+  [255,255,255], // 0: White
+  [255,255,0],   // 1: Yellow
+  [0,200,0],     // 2: Green
+  [0,0,255],     // 3: Blue
+  [255,165,0],   // 4: Orange
+  [255,0,0],     // 5: Red
 ];
 
 /**
- * Euclidean distance squared between two RGB colors (for performance).
+ * Normalize a color to one of 6 face colors using HSV comparison.
+ * Returns face index (0-5).
  */
-function colorDistSq(a, b) {
-  const dr = a[0] - b[0], dg = a[1] - b[1], db = a[2] - b[2];
-  return dr*dr + dg*dg + db*db;
-}
+function matchColor(r, g, b) {
+  // Convert RGB to HSV
+  const rr = r / 255;
+  const gg = g / 255;
+  const bb = b / 255;
 
-/**
- * Assign each pixel to the nearest centroid.
- * Returns an array of cluster indices.
- */
-function assignClusters(pixels, centroids) {
-  return pixels.map(p => {
-    let best = 0, bestDist = colorDistSq(p, centroids[0]);
-    for (let k = 1; k < centroids.length; k++) {
-      const d = colorDistSq(p, centroids[k]);
-      if (d < bestDist) { bestDist = d; best = k; }
-    }
-    return best;
-  });
-}
+  const max = Math.max(rr, gg, bb);
+  const min = Math.min(rr, gg, bb);
+  const delta = max - min;
 
-/**
- * Recompute centroids as the mean of all pixels assigned to each cluster.
- * Returns new centroids. If a cluster gets 0 pixels, keep its old centroid.
- */
-function recomputeCentroids(pixels, assignments, k, oldCentroids) {
-  const sums = Array.from({length: k}, () => [0, 0, 0]);
-  const counts = new Array(k).fill(0);
-  for (let i = 0; i < pixels.length; i++) {
-    const c = assignments[i];
-    sums[c][0] += pixels[i][0];
-    sums[c][1] += pixels[i][1];
-    sums[c][2] += pixels[i][2];
-    counts[c]++;
-  }
-  const newCentroids = [];
-  for (let c = 0; c < k; c++) {
-    if (counts[c] > 0) {
-      newCentroids.push([
-        Math.round(sums[c][0] / counts[c]),
-        Math.round(sums[c][1] / counts[c]),
-        Math.round(sums[c][2] / counts[c]),
-      ]);
+  let h = 0;
+  if (delta > 0.01) {
+    if (max === rr) {
+      h = 60 * (((gg - bb) / delta) % 6);
+    } else if (max === gg) {
+      h = 60 * (((bb - rr) / delta) + 2);
     } else {
-      newCentroids.push([...oldCentroids[c]]); // keep old
+      h = 60 * (((rr - gg) / delta) + 4);
     }
   }
-  return newCentroids;
-}
+  if (h < 0) h += 360;
 
-/**
- * Run k-means clustering for up to maxIter iterations.
- * Stops early when assignments stabilize.
- */
-function kMeans(pixels, k, initialCentroids, maxIter = 20) {
-  let centroids = initialCentroids.map(c => [...c]);
-  let prevAssignments = null;
-  for (let iter = 0; iter < maxIter; iter++) {
-    const assignments = assignClusters(pixels, centroids);
-    if (prevAssignments && assignments.every((a, i) => a === prevAssignments[i])) {
-      break; // converged
-    }
-    centroids = recomputeCentroids(pixels, assignments, k, centroids);
-    prevAssignments = assignments;
-  }
-  return centroids;
-}
+  const s = max > 0.01 ? delta / max : 0;
+  const v = max;
 
-/**
- * Detect colors using k-means clustering.
- * Takes raw pixel samples (one per sticker cell, averaged RGB).
- * Returns a 9-element array of face indices (0-5).
- *
- * How it works:
- * 1. Collect all 9 sticker RGB samples
- * 2. Run k-means with k=6 to find the 6 color clusters
- * 3. Match each cluster to a face color by comparing centroids to reference colors
- * 4. Assign each sticker cell to the face color of its nearest cluster
- */
-function detectColors(stickerSamples) {
-  // Run k-means with 6 clusters using reference colors as initialization
-  const centroids = kMeans(stickerSamples, 6, REFERENCE_COLORS);
+  // HSV ranges for each face color (tuned for typical Rubik's cubes)
+  // Hue is dominant, saturation helps separate white from pastels
+  // Value (brightness) is ignored to handle glare — only hue+saturation matter
 
-  // Compute hue and saturation for each centroid
-  function rgbToHueSat(rgb) {
-    const r = rgb[0]/255, g = rgb[1]/255, b = rgb[2]/255;
-    const max = Math.max(r, g, b), min = Math.min(r, g, b), delta = max - min;
-    const sat = max > 0.01 ? (max - min) / max : 0;
-    if (delta < 0.01) return { h: -1, s: sat };
-    let h = 0;
-    if (max === r) h = 60 * (((g - b) / delta) % 6);
-    else if (max === g) h = 60 * (((b - r) / delta) + 2);
-    else h = 60 * (((r - g) / delta) + 4);
-    if (h < 0) h += 360;
-    return { h, s: sat };
+  // If saturation is very low, it's white or black/dark
+  if (s < 0.2) {
+    if (v > 0.5) return 0; // White
+    // Could be dark (black sticker)
+    return 0; // Default to white for very dark (user can fix)
   }
 
-  const info = centroids.map(c => ({ c, ...rgbToHueSat(c) }));
+  // Yellow: hue 45-75
+  if (h >= 40 && h < 80) return 1; // Yellow
 
-  // Find white cluster (lowest saturation)
-  let whiteIdx = 0;
-  let minSat = Infinity;
-  for (let i = 0; i < 6; i++) {
-    if (info[i].s < minSat) { minSat = info[i].s; whiteIdx = i; }
-  }
+  // Green: hue 85-160
+  if (h >= 85 && h < 160) return 2; // Green
 
-  // Remaining 5 clusters sorted by hue
-  const colored = [0,1,2,3,4,5].filter(i => i !== whiteIdx)
-    .sort((a, b) => info[a].h - info[b].h);
+  // Blue: hue 180-260
+  if (h >= 180 && h < 260) return 3; // Blue
 
-  // The 5 colored clusters in hue order map to [Red, Orange, Yellow, Green, Blue]
-  // but we need to handle red's wrap-around (near 0° and 360°).
-  // Check if the lowest-hue cluster is red (hue < 30) or orange (hue 20-50)
-  const faceOrder = [5, 4, 1, 2, 3]; // Red, Orange, Yellow, Green, Blue
+  // Red: hue 0-20 or 330-360
+  if ((h >= 0 && h < 20) || h >= 330) return 5; // Red
 
-  // Build cluster-to-face mapping
-  const clusterToFace = new Array(6);
-  clusterToFace[whiteIdx] = 0; // White
+  // Orange: hue 20-40
+  if (h >= 20 && h < 40) return 4; // Orange
 
-  for (let i = 0; i < 5; i++) {
-    clusterToFace[colored[i]] = faceOrder[i];
-  }
+  // Fallback — closest by hue
+  if (h >= 160 && h < 180) return 2; // between green and blue → green
+  if (h >= 260 && h < 330) return 3; // blue-ish
+  if (h >= 40 && h < 85) return 1; // yellow-ish
 
-  // Assign each sticker to its cluster's face color
-  const assignments = assignClusters(stickerSamples, centroids);
-  return assignments.map(c => clusterToFace[c]);
-}
-
-/**
- * Auto white-balance a canvas region: scale RGB so bright areas approach true white.
- * This corrects for warm/cool lighting before color matching.
- */
-function autoWhiteBalance(ctx, w, h) {
-  // Sample the image to find the brightest pixel (assumed to be white)
-  const data = ctx.getImageData(0, 0, w, h).data;
-  let maxR = 0, maxG = 0, maxB = 0;
-  // Use top percentile to avoid single hot pixels
-  const pixels = [];
-  for (let i = 0; i < data.length; i += 16) {
-    const r = data[i], g = data[i+1], b = data[i+2];
-    pixels.push({ r, g, b, lum: r + g + b });
-  }
-  pixels.sort((a, b) => b.lum - a.lum);
-  // Take top 2% brightest pixels
-  const topCount = Math.max(3, Math.floor(pixels.length * 0.02));
-  let sumR = 0, sumG = 0, sumB = 0;
-  for (let i = 0; i < topCount; i++) {
-    sumR += pixels[i].r;
-    sumG += pixels[i].g;
-    sumB += pixels[i].b;
-  }
-  maxR = sumR / topCount;
-  maxG = sumG / topCount;
-  maxB = sumB / topCount;
-
-  // Scale factors — bring brightest pixel to 240 (not pure 255 to avoid overexposure)
-  const target = 240;
-  const scaleR = maxR > 20 ? target / maxR : 1;
-  const scaleG = maxG > 20 ? target / maxG : 1;
-  const scaleB = maxB > 20 ? target / maxB : 1;
-
-  // Apply to the whole canvas
-  const imageData = ctx.getImageData(0, 0, w, h);
-  const d = imageData.data;
-  for (let i = 0; i < d.length; i += 4) {
-    d[i]   = Math.min(255, d[i]   * scaleR);
-    d[i+1] = Math.min(255, d[i+1] * scaleG);
-    d[i+2] = Math.min(255, d[i+2] * scaleB);
-  }
-  ctx.putImageData(imageData, 0, 0);
+  return 5; // default red
 }
 
 /**
  * Sample the 3x3 grid from a canvas at given center and spacing.
- * Returns an array of 9 raw RGB samples (each as [r,g,b]).
- * These are passed to detectColors() for k-means clustering.
+ * Returns a flat 9-element array of face indices (0-5).
  */
 function sampleGrid(ctx, cx, cy, spacing) {
-  const samples = [];
-  const sampleRadius = Math.max(3, Math.floor(spacing * 0.2));
+  const grid = [];
+  const sampleSize = Math.max(4, Math.floor(spacing * 0.25));
 
   for (let row = 0; row < 3; row++) {
     for (let col = 0; col < 3; col++) {
       const x = cx + (col - 1) * spacing;
       const y = cy + (row - 1) * spacing;
 
-      // Average a small region at the cell center
+      // Sample a small region and average
       const pixelData = ctx.getImageData(
-        Math.round(x - sampleRadius/2),
-        Math.round(y - sampleRadius/2),
-        sampleRadius, sampleRadius
+        Math.round(x - sampleSize/2),
+        Math.round(y - sampleSize/2),
+        sampleSize, sampleSize
       ).data;
 
       let r = 0, g = 0, b = 0, count = 0;
@@ -221,14 +110,16 @@ function sampleGrid(ctx, cx, cy, spacing) {
         count++;
       }
       if (count > 0) {
-        r = Math.round(r / count);
-        g = Math.round(g / count);
-        b = Math.round(b / count);
+        r /= count;
+        g /= count;
+        b /= count;
       }
-      samples.push([r, g, b]);
+
+      const faceIdx = matchColor(r, g, b);
+      grid.push(faceIdx);
     }
   }
-  return samples;
+  return grid;
 }
 
 /**
@@ -294,9 +185,6 @@ function captureFace(videoElement) {
   const ctx = canvas.getContext('2d');
   ctx.drawImage(videoElement, 0, 0, w, h);
 
-  // Apply white balance to correct lighting before sampling
-  autoWhiteBalance(ctx, w, h);
-
   // Capture the central region (where the 3x3 grid is)
   // Scale: assume the face occupies about 60% of the frame
   const faceSize = Math.min(w, h) * 0.45;
@@ -304,10 +192,7 @@ function captureFace(videoElement) {
   const cy = h / 2;
   const spacing = faceSize / 3;
 
-  // Get raw RGB samples for all 9 sticker cells
-  const samples = sampleGrid(ctx, cx, cy, spacing);
-  // Use k-means clustering to detect colors adaptively
-  const grid = detectColors(samples);
+  const grid = sampleGrid(ctx, cx, cy, spacing);
   return grid;
 }
 
