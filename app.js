@@ -135,8 +135,6 @@ class CubeBuddyApp {
 
   _setupPlay() {
     this.mixBtn.addEventListener('click', () => this._scramble());
-    this.centerBtn = document.getElementById('center-btn');
-    if (this.centerBtn) this.centerBtn.addEventListener('click', () => this._alignFaces());
     this.scanBtn = document.getElementById('scan-btn');
     if (this.scanBtn) this.scanBtn.addEventListener('click', () => this._startScan());
     this.undoBtn.addEventListener('click', () => this._undo());
@@ -1210,32 +1208,6 @@ class CubeBuddyApp {
 
   resetCube() {
     this.cube.reset();
-    this.moves = 0;
-    this._history = [];
-    this.showCelebration = false;
-    this.solvedBadge.style.display = 'none';
-    this._renderCube();
-    this._updateControls();
-    this._sync3D();
-    this._saveToLocalStorage();
-  }
-
-  // Remap all stickers so each face shows its center color
-  // Read center of each face → build a color mapping → apply to every sticker
-  _alignFaces() {
-    const s = this.cube._state;
-    // Read current center of each face: centerOf[faceIdx] = colorIndex
-    const centerOf = [0,1,2,3,4,5].map(f => s[f * 9 + 4]);
-    // Build inverse: which face should each color go to?
-    // colorToFace[colorIndex] = targetFaceIdx
-    const colorToFace = new Array(6);
-    for (let face = 0; face < 6; face++) {
-      colorToFace[centerOf[face]] = face;
-    }
-    // Remap every sticker: sticker's color → new color for its target face
-    for (let i = 0; i < 54; i++) {
-      s[i] = colorToFace[s[i]];
-    }
     this.moves = 0;
     this._history = [];
     this.showCelebration = false;

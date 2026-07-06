@@ -227,143 +227,77 @@ class CubeBuddy3D {
       const { faceIdx, row, col } = this._swipeSticker;
       const adj = this.edgeAdjacency[faceIdx];
       if (adj) {
-        // --- Convert screen drag to face-local direction ---
-        // Get face axes in world space
-        const q = this.cubeGroup.quaternion;
-        const axes = FACE_LOCAL_AXES[faceIdx];
-        const worldRight = new THREE.Vector3(axes.right[0], axes.right[1], axes.right[2]).applyQuaternion(q);
-        const worldUp = new THREE.Vector3(axes.up[0], axes.up[1], axes.up[2]).applyQuaternion(q);
-
-        // Get the sticker's world position for projection
+        // === EDGE-DIRECTION PROJECTION (orbit-independent) ===
+        // Project each physical edge direction (top/bottom/left/right) from the
+        // sticker to screen and pick the one best matching the user's swipe.
+        // This works at any orbit angle because edge directions rotate with the cube.
         const hitMesh = this._getStickerAtPoint(e.clientX, e.clientY) || this.stickerMeshes.find(m => {
           const ud = m.userData;
           return ud.isSticker && ud.faceIdx === faceIdx && ud.row === row && ud.col === col;
         });
         const hitPos = new THREE.Vector3();
-        let isHoriz = true, faceRight = true, faceDown = true;
         let edgeEntry = null, edgeName = null;
-        const isCorner = (row === 0 || row === 2) && (col === 0 || col === 2);
+        const edgeDots = {};
         if (hitMesh) {
           hitMesh.getWorldPosition(hitPos);
-          // Project face-right and face-up axes onto screen at the hit point
           const p0 = hitPos.clone().project(this.camera);
-          const pR = hitPos.clone().add(worldRight).project(this.camera);
-          const pU = hitPos.clone().add(worldUp).project(this.camera);
-          const sR = new THREE.Vector2(pR.x - p0.x, pR.y - p0.y).normalize();
-          const sU = new THREE.Vector2(pU.x - p0.x, pU.y - p0.y).normalize();
-          // Dot screen drag direction with each projected axis
           const screenDir = new THREE.Vector2(dx, dy).normalize();
-          const dotR = screenDir.dot(sR);
-          const dotU = screenDir.dot(sU);
-          isHoriz = Math.abs(dotR) > Math.abs(dotU);
-          faceRight = dotR > 0;
-          faceDown = dotU > 0;
 
-          if (this._debugLog) {
-            this._debugLog(`FACE-LOCAL: right=(${sR.x.toFixed(3)},${sR.y.toFixed(3)}) dot=${dotR.toFixed(3)} up=(${sU.x.toFixed(3)},${sU.y.toFixed(3)}) dot=${dotU.toFixed(3)}`);
-            this._debugLog(`→ ${isHoriz ? 'HORIZ' : 'VERT'} ${isHoriz ? (faceRight ? '→' : '←') : (faceDown ? '↓' : '↑')}`);
-          }
-        }
+          const q = this.cubeGroup.quaternion;
+          const axes = FACE_LOCAL_AXES[faceIdx];
+          const worldRight = new THREE.Vector3(axes.right[0], axes.right[1], axes.right[2]).applyQuaternion(q);
+          const worldUp = new THREE.Vector3(axes.up[0], axes.up[1], axes.up[2]).applyQuaternion(q);
 
-        // Some faces' projected up/right axes are inverted relative to user perception
-        // U(0) and D(1) need faceDown/faceRight inverted so swipe direction is correct
-        const FACE_DIR_INVERT = { 0: true, 1: true, 3: true };
-        if (FACE_DIR_INVERT[faceIdx]) {
-          faceDown = !faceDown;
-        }
+          const edgeDefs = [
+            { name: 'top', lx: 0, lz: 1 },
+            { name: 'bottom', lx: 0, lz: -1 },
+            { name: 'left', lx: -1, lz: 0 },
+            { name: 'right', lx: 1, lz: 0 },
+          ];
 
-        // MID-ROW (1,0) or (1,2) — horizontal swipe across middle row
-        // Use screen-space isHoriz for orbit-independent edge detection
-        if (row === 1 && col !== 1) {
-          if (Math.abs(dx) > Math.abs(dy)) {
-            if (col === 0) {
-              if (faceRight) { edgeEntry = adj.midLeft; edgeName = 'midLeft'; }
-              else { edgeEntry = adj.left; edgeName = 'left'; }
-            } else {
-              if (!faceRight) { edgeEntry = adj.midRight; edgeName = 'midRight'; }
-              else { edgeEntry = adj.right; edgeName = 'right'; }
-            }
-          } else { edgeEntry = { consumed: true }; }
-        }
-        // MID-COL (0,1) or (2,1) — vertical swipe across middle column
-        // Use screen-space isHoriz for orbit-independent edge detection
-        else if (col === 1 && row !== 1) {
-          if (Math.abs(dx) <= Math.abs(dy)) {
-            if (row === 0) {
-              // B(3) 180° snap: B(0,1) vertical always→M slice
-              if (faceIdx === 3 || faceDown) { edgeEntry = adj.midTop; edgeName = 'midTop'; }
-              else { edgeEntry = adj.top; edgeName = 'top'; }
-            } else {
-              // B(3) has 180° snap: user's "down" = face-local "up"
-              if (faceIdx === 3) {
-                if (faceDown) { edgeEntry = adj.midBottom; edgeName = 'midBottom'; }
-                else { edgeEntry = adj.bottom; edgeName = 'bottom'; }
-              } else {
-                if (!faceDown) { edgeEntry = adj.midBottom; edgeName = 'midBottom'; }
-                else { edgeEntry = adj.bottom; edgeName = 'bottom'; }
-              }
-            }
-          } else { edgeEntry = { consumed: true }; }
-        }
-        // CORNER - use screen-space direction mapped through face center projection
-        else if (isCorner) {
-          // Project the face center to screen, use its direction from the sticker
-          // to determine which axis (horiz/vert) the user should be using
-          var centerMesh = this.stickerMeshes.find(function(m) {
-            return m.userData.isSticker && m.userData.faceIdx === faceIdx && m.userData.row === 1 && m.userData.col === 1;
-          });
-          if (centerMesh) {
-            var cp = new THREE.Vector3();
-            centerMesh.getWorldPosition(cp);
-            cp.project(this.camera);
-            var cr = this.renderer.domElement.getBoundingClientRect();
-            var cx = (cp.x * 0.5 + 0.5) * cr.width + cr.left;
-            var cy = (-cp.y * 0.5 + 0.5) * cr.height + cr.top;
-            // Project the CORNER sticker to screen
-            var cornerMesh = this.stickerMeshes.find(function(m) {
-              return m.userData.isSticker && m.userData.faceIdx === faceIdx && m.userData.row === row && m.userData.col === col;
-            });
-            if (cornerMesh) {
-              var wp = new THREE.Vector3();
-              cornerMesh.getWorldPosition(wp);
-              wp.project(this.camera);
-              var sx = (wp.x * 0.5 + 0.5) * cr.width + cr.left;
-              var sy = (-wp.y * 0.5 + 0.5) * cr.height + cr.top;
-              // Inward direction on screen
-              var ix = cx - sx, iy = cy - sy;
-              // Use the inward vector's dominant axis to choose edge
-              if (Math.abs(ix) > Math.abs(iy)) {
-                edgeName = row === 0 ? 'top' : 'bottom';
-              } else {
-                edgeName = col === 0 ? 'left' : 'right';
-              }
-              edgeEntry = adj[edgeName];
+          edgeDefs.forEach(function(e) {
+            var worldDir = new THREE.Vector3()
+              .addScaledVector(worldRight, e.lx)
+              .addScaledVector(worldUp, e.lz);
+            if (worldDir.length() < 0.001) return;
+            worldDir.normalize();
+
+            var pDir = hitPos.clone().add(worldDir).project(this.camera);
+            var sDir = new THREE.Vector2(pDir.x - p0.x, pDir.y - p0.y).normalize();
+            var dot = screenDir.dot(sDir);
+            edgeDots[e.name] = dot;
+          }.bind(this));
+
+          // Pick edge with highest |dot| — sign determines CW/CCW
+          var bestEdge = null;
+          var bestAbs = 0;
+          for (var en in edgeDots) {
+            var abs = Math.abs(edgeDots[en]);
+            if (abs > bestAbs) {
+              bestAbs = abs;
+              bestEdge = en;
             }
           }
-          // Fallback: screen-space
-          if (!edgeEntry) {
-            if (Math.abs(dx) > Math.abs(dy)) {
-              edgeName = row === 0 ? 'top' : 'bottom';
-            } else {
-              edgeName = col === 0 ? 'left' : 'right';
-            }
+
+          if (bestEdge && bestAbs > 0.1) {
+            edgeName = bestEdge;
             edgeEntry = adj[edgeName];
           }
         }
 
         if (this._debugLog) {
-          const dirLabel = isHoriz ? (faceRight ? '→' : '←') : (faceDown ? '↓' : '↑');
-          this._debugLog(`SWIPE: ${['U','D','F','B','L','R'][faceIdx]}(${row},${col}) ${dirLabel} dist=${dist.toFixed(0)}`);
+          this._debugLog('EDGE-DOTS: top=' + (edgeDots.top||0).toFixed(2) + ' bottom=' + (edgeDots.bottom||0).toFixed(2) + ' left=' + (edgeDots.left||0).toFixed(2) + ' right=' + (edgeDots.right||0).toFixed(2) + ' pick=' + edgeName);
+          this._debugLog('SWIPE: ' + ['U','D','F','B','L','R'][faceIdx] + '(' + row + ',' + col + ') dist=' + dist.toFixed(0));
         }
 
         if (edgeEntry) {
           if (edgeEntry.consumed) {
-            if (this._debugLog) this._debugLog('→ CONSUMED');
+            if (this._debugLog) this._debugLog('-> CONSUMED');
             this._isDragging = false; this._swipeFace = null; this._swipeSticker = null;
             return;
           }
           const adjFace = edgeEntry.face;
-          if (this._debugLog && edgeName) this._debugLog(`→ ${edgeName} adj=${adjFace}`);
+          if (this._debugLog && edgeName) this._debugLog('-> ' + edgeName + ' adj=' + adjFace);
           if (edgeEntry.isSlice) {
             const sliceInv = edgeEntry.invert ? 1 : 0;
             const dir = edgeEntry.dir;
@@ -372,28 +306,13 @@ class CubeBuddy3D {
             else if (dir === 'left') prime = 0 ^ sliceInv;
             else if (dir === 'down') prime = 0 ^ sliceInv;
             else prime = 1 ^ sliceInv;
-            if (this._debugLog) this._debugLog(`→ SLICE: ${adjFace} ${prime ? 'CCW' : 'CW'}`);
+            if (this._debugLog) this._debugLog('-> SLICE: ' + adjFace + ' ' + (prime ? 'CCW' : 'CW'));
             this._doTurn(adjFace, prime);
           } else {
             const inv = edgeEntry.invert ? 1 : 0;
-            // Determine prime based on edge + swipe direction
-            let prime = 0;
-            if (edgeName === 'top' || edgeName === 'bottom') {
-              if (edgeName === 'top') {
-                prime = isHoriz
-                  ? (faceRight ? (inv ? 0 : 1) : (inv ? 1 : 0))
-                  : (faceDown ? (inv ? 1 : 0) : (inv ? 0 : 1));
-              } else {
-                prime = isHoriz
-                  ? (faceRight ? (inv ? 1 : 0) : (inv ? 0 : 1))
-                  : (faceDown ? (inv ? 0 : 1) : (inv ? 1 : 0));
-              }
-            } else if (edgeName === 'left') {
-              prime = faceDown ? (inv ? 1 : 0) : (inv ? 0 : 1);
-            } else {
-              prime = faceDown ? (inv ? 0 : 1) : (inv ? 1 : 0);
-            }
-            if (this._debugLog) this._debugLog(`→ TURN: ${adjFace} ${prime ? 'CCW' : 'CW'}`);
+            const dot = edgeDots[edgeName] || 0;
+            const prime = (dot > 0) ? (inv ? 1 : 0) : (inv ? 0 : 1);
+            if (this._debugLog) this._debugLog('-> TURN: ' + adjFace + ' ' + (prime ? 'CCW' : 'CW') + ' (dot=' + dot.toFixed(2) + ')');
             this._doTurn(adjFace, prime);
           }
           this._isDragging = false; this._swipeFace = null; this._swipeSticker = null;
