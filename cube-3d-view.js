@@ -253,56 +253,49 @@ class CubeBuddy3D {
           }
 
           // Determine edge based on START→END cell comparison
-          // If end is on the SAME face, compare (row,col) changes
-          // If end is on a DIFFERENT face, check which face it is
+          // GROUPING LOGIC:
+          //   Same row (0,1,2) → that row's edge determines the face
+          //   Same col (0,1,2) → that col's edge determines the face
+          //   Different face → that face IS the edge
           if (endFace === faceIdx) {
-            // Same face: determine direction from (row,col) delta
             const dRow = endRow - row;
             const dCol = endCol - col;
-            // No movement — same sticker, ignore
-            if (dRow === 0 && dCol === 0) {
-              // Fall through — no edge crossed
-            } else {
-            isHoriz = Math.abs(dCol) >= Math.abs(dRow);
-            const isMidRow = (row === 1) && (col === 0 || col === 2);
-            const isMidCol = (col === 1) && (row === 0 || row === 2);
 
-            if (isMidRow) {
-              // Mid-row sticker: only left/right moves
-              if (isHoriz) {
-                if (col === 0) {
-                  edgeName = dCol > 0 ? 'midRight' : 'left';
-                } else {
-                  edgeName = dCol < 0 ? 'midLeft' : 'right';
-                }
+            if (dRow === 0 && dCol === 0) {
+              // No movement — same sticker, ignore
+            } else if (endRow === row) {
+              // Same row: movement along this row
+              // row 0 → top edge, row 2 → bottom edge, row 1 → mid-row (slice)
+              if (row === 1) {
+                // Mid-row: slice move
+                edgeName = dCol > 0 ? (col === 0 ? 'midRight' : 'right') : (col === 0 ? 'left' : 'midLeft');
               } else {
-                edgeEntry = { consumed: true };
+                edgeName = row === 0 ? 'top' : 'bottom';
               }
-            } else if (isMidCol) {
-              // Mid-col sticker: only up/down moves
-              if (!isHoriz) {
-                if (row === 0) {
-                  edgeName = dRow > 0 ? 'midTop' : 'top';
-                } else {
-                  edgeName = dRow < 0 ? 'midBottom' : 'bottom';
-                }
+            } else if (endCol === col) {
+              // Same col: movement along this col
+              // col 0 → left edge, col 2 → right edge, col 1 → mid-col (slice)
+              if (col === 1) {
+                // Mid-col: slice move
+                edgeName = dRow > 0 ? (row === 0 ? 'midTop' : 'bottom') : (row === 0 ? 'top' : 'midBottom');
               } else {
-                edgeEntry = { consumed: true };
+                edgeName = col === 0 ? 'left' : 'right';
               }
             } else {
-              // Corner or center: use 2D-like priority
-              if (isHoriz) {
+              // Both row and col changed — same face but diagonal
+              // Use dominant axis
+              if (Math.abs(dCol) >= Math.abs(dRow)) {
                 edgeName = row === 0 ? 'top' : (row === 2 ? 'bottom' : (col === 0 ? 'left' : 'right'));
               } else {
                 edgeName = col === 0 ? 'left' : (col === 2 ? 'right' : (row === 0 ? 'top' : 'bottom'));
               }
             }
-            }
           } else {
             // Crossed to a DIFFERENT face: determine which edge of START face
             // was crossed by checking which face it is relative to start face
+            const endFaceName = ['U','D','F','B','L','R'][endFace];
             for (const key in adj) {
-              if (adj[key].face === ['U','D','F','B','L','R'][endFace]) {
+              if (adj[key].face === endFaceName) {
                 edgeName = key;
                 break;
               }
