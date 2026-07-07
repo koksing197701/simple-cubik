@@ -1229,8 +1229,7 @@ class CubeBuddyApp {
       if (this._debugVisible) el.textContent = '🐛 Debug ON';
     }
     if (el2) {
-      el2.style.display = this._debugVisible ? 'block' : 'none';
-      if (this._debugVisible) el2.textContent = '';
+      el2.style.display = 'none';
     }
     const btn = document.getElementById('debug-btn');
     if (btn) btn.textContent = this._debugVisible ? '🐛ON' : '🐛';
@@ -1256,13 +1255,7 @@ class CubeBuddyApp {
   }
 
   _debugLogBottom(msg) {
-    if (!this._debugVisible) return;
-    const el = document.getElementById('debug-overlay-bottom');
-    if (el) {
-      const lines = (el.textContent || '').split('\n');
-      lines.push(msg);
-      el.textContent = lines.slice(-6).join('\n');
-    }
+    // disabled
   }
 
   // Expose debug in 3D CubeBuddy3D instance
