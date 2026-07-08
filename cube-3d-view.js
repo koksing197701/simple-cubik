@@ -6,6 +6,71 @@
 (function() {
 'use strict';
 
+// ─── Ring System Constants ───
+// Each ring is an ordered array of 12 sticker IDs.
+// The ring wraps around: ring[12] = ring[0].
+// Sticker ID format: faceLetter + (row*3+col)
+// Coordinate system: Foo (x,y) where (0,0)=bottom-left, (2,2)=top-right
+
+const RING_STICKERS = {
+  U: ['F0','F1','F2','R0','R1','R2','B0','B1','B2','L0','L1','L2'],
+  D: ['F6','F7','F8','R6','R7','R8','B6','B7','B8','L6','L7','L8'],
+  L: ['F0','F3','F6','D0','D3','D6','B8','B5','B2','U0','U3','U6'],
+  R: ['F2','F5','F8','D2','D5','D8','B6','B3','B0','U2','U5','U8'],
+  F: ['L2','L5','L8','D0','D1','D2','R6','R3','R0','U8','U7','U6'],
+  B: ['R2','R5','R8','D8','D7','D6','L6','L3','L0','U0','U1','U2'],
+  S: ['F3','F4','F5','R3','R4','R5','B3','B4','B5','L3','L4','L5'],
+  M: ['F1','F4','F7','D1','D4','D7','B7','B4','B1','U7','U4','U1'],
+  E: ['L1','L4','L7','D3','D4','D5','R7','R4','R1','U5','U4','U3'],
+};
+
+// Forward direction (ring[0]→ring[1]→...→ring[11]) determines CW/CCW per ring
+// true = CW, false = CCW
+const RING_FORWARD_IS_CW = {
+  U: false, D: true,  L: true,  R: false,
+  F: false, B: false, S: false, M: true,  E: true,
+};
+
+// Map faceIdx to face letter
+const FACE_IDX_TO_LETTER = ['U','D','F','B','L','R'];
+
+// Convert (faceIdx, row, col) to sticker ID like "F0", "U6"
+function stickerId(faceIdx, row, col) {
+  return FACE_IDX_TO_LETTER[faceIdx] + (row * 3 + col);
+}
+
+// Find which ring(s) both stickers belong to, and determine direction.
+// Returns { ring, turn, isCw, gap } or null if no ring match.
+function resolveRingSwipe(startFaceIdx, startRow, startCol, endFaceIdx, endRow, endCol) {
+  const startId = stickerId(startFaceIdx, startRow, startCol);
+  const endId = stickerId(endFaceIdx, endRow, endCol);
+
+  if (startId === endId) return null; // No movement
+
+  for (const [ringName, stickers] of Object.entries(RING_STICKERS)) {
+    const si = stickers.indexOf(startId);
+    const ei = stickers.indexOf(endId);
+    if (si === -1 || ei === -1) continue;
+
+    // Both stickers are in this ring — determine forward/backward distance
+    const len = stickers.length; // 12
+    const fwdSteps = (ei - si + len) % len; // 0..11
+    const bwdSteps = (si - ei + len) % len;
+
+    // Use the shorter path. If equal distance, let caller decide.
+    const gap = Math.min(fwdSteps, bwdSteps);
+    if (gap === 0) return null; // same sticker (shouldn't happen)
+    if (gap > 4) return null;  // Too far — ignore
+
+    const goingForward = fwdSteps <= bwdSteps;
+    const isCw = goingForward ? RING_FORWARD_IS_CW[ringName] : !RING_FORWARD_IS_CW[ringName];
+
+    return { ring: ringName, turn: ringName, isCw, gap };
+  }
+
+  return null; // No ring matched
+}
+
 class CubeBuddy3D {
   constructor(options = {}) {
     this.container = options.container || document.getElementById('cube-3d-container');
@@ -211,162 +276,68 @@ class CubeBuddy3D {
     const dist = Math.sqrt(dx*dx + dy*dy);
     const SWIPE_THRESHOLD = 15;
 
-    // Convert screen-space drag to face-local direction
-    // Face-local axes in cube space (faceIdx: 0=U,1=D,2=F,3=B,4=L,5=R)
-    const FACE_LOCAL_AXES = [
-      { right: [1,0,0],  up: [0,0,1] },  // 0 U
-      { right: [1,0,0],  up: [0,0,-1] }, // 1 D
-      { right: [1,0,0],  up: [0,1,0] },  // 2 F
-      { right: [-1,0,0], up: [0,1,0] },  // 3 B
-      { right: [0,0,1],  up: [0,1,0] },  // 4 L
-      { right: [0,0,-1], up: [0,1,0] },  // 5 R
-    ];
+    // ─── RING-BASED SWIPE DETECTION ───
+    // Instead of per-face edge projection, use ring-based sticker matching.
+    // Compare START sticker (from pointer down) with END sticker (from pointer up)
+    // to determine which physical ring was crossed and the direction.
 
-    // Edge swipe
-    if (this._swipeSticker && dist > SWIPE_THRESHOLD) {
+    if (dist > SWIPE_THRESHOLD && this._swipeSticker) {
       const { faceIdx, row, col } = this._swipeSticker;
+
       if (this._debugLog) {
-        this._debugLog(`HIT: ${['U','D','F','B','L','R'][faceIdx]}(${row},${col}) ext=true`);
-        this._debugLog(`START: ${['U','D','F','B','L','R'][faceIdx]}(${row},${col})`);
+        this._debugLog(`START: ${FACE_IDX_TO_LETTER[faceIdx]}(${row},${col})`);
       }
-      const adj = this.edgeAdjacency[faceIdx];
-      if (adj) {
-        // === FOO123 CELL-TO-CELL SWIPE DETECTION ===
-        // Compare START sticker (faceIdx, row, col) with END sticker (from hitMesh)
-        // to determine which face edge was crossed, independent of orbit angle.
-        const hitMesh = this._getStickerAtPoint(e.clientX, e.clientY) || this.stickerMeshes.find(m => {
-          const ud = m.userData;
-          return ud.isSticker && ud.faceIdx === faceIdx && ud.row === row && ud.col === col;
-        });
 
-        let edgeEntry = null, edgeName = null;
-        let isHoriz = true, faceRight = true, faceDown = true;
+      // Resolve END sticker at pointer-up position
+      const hitMesh = this._getStickerAtPoint(e.clientX, e.clientY);
 
-        if (hitMesh) {
-          const eud = hitMesh.userData;
-          const endFace = eud.faceIdx;
-          const endRow = eud.row;
-          const endCol = eud.col;
+      if (hitMesh) {
+        const eud = hitMesh.userData;
+        const endFace = eud.faceIdx;
+        const endRow = eud.row;
+        const endCol = eud.col;
 
-          if (this._debugLog) {
-            this._debugLog(`END: ${['U','D','F','B','L','R'][endFace]}(${endRow},${endCol})`);
-          }
-
-          // Determine edge based on START→END cell comparison
-          // GROUPING LOGIC:
-          //   Same row (0,1,2) → that row's edge determines the face
-          //   Same col (0,1,2) → that col's edge determines the face
-          //   Different face → that face IS the edge
-          if (endFace === faceIdx) {
-            const dRow = endRow - row;
-            const dCol = endCol - col;
-
-            if (dRow === 0 && dCol === 0) {
-              // No movement — same sticker, ignore
-            } else if (endRow === row) {
-              // Same row: movement along this row
-              // row 0 → top edge, row 2 → bottom edge, row 1 → mid-row (slice)
-              if (row === 1) {
-                // Mid-row: slice move
-                edgeName = dCol > 0 ? (col === 0 ? 'midRight' : 'right') : (col === 0 ? 'left' : 'midLeft');
-              } else {
-                edgeName = row === 0 ? 'top' : 'bottom';
-              }
-            } else if (endCol === col) {
-              // Same col: movement along this col
-              // col 0 → left edge, col 2 → right edge, col 1 → mid-col (slice)
-              if (col === 1) {
-                // Mid-col: slice move
-                edgeName = dRow > 0 ? (row === 0 ? 'midTop' : 'bottom') : (row === 0 ? 'top' : 'midBottom');
-              } else {
-                edgeName = col === 0 ? 'left' : 'right';
-              }
-            } else {
-              // Both row and col changed — same face but diagonal
-              // Use dominant axis
-              if (Math.abs(dCol) >= Math.abs(dRow)) {
-                edgeName = row === 0 ? 'top' : (row === 2 ? 'bottom' : (col === 0 ? 'left' : 'right'));
-              } else {
-                edgeName = col === 0 ? 'left' : (col === 2 ? 'right' : (row === 0 ? 'top' : 'bottom'));
-              }
-            }
-          } else {
-            // Crossed to a DIFFERENT face: determine which edge of START face
-            // was crossed by checking which face it is relative to start face
-            const endFaceName = ['U','D','F','B','L','R'][endFace];
-            for (const key in adj) {
-              if (adj[key].face === endFaceName) {
-                edgeName = key;
-                break;
-              }
-            }
-          }
-
-          if (edgeName && !edgeEntry) {
-            edgeEntry = adj[edgeName];
-          }
-
-          // Compute face-relative direction for CW/CCW (simplified from v3.9.0)
-          // Use orbit quaternion to project face axes
-          const q = this.cubeGroup.quaternion;
-          const axes = FACE_LOCAL_AXES[faceIdx];
-          const worldRight = new THREE.Vector3(axes.right[0], axes.right[1], axes.right[2]).applyQuaternion(q);
-          const worldUp = new THREE.Vector3(axes.up[0], axes.up[1], axes.up[2]).applyQuaternion(q);
-          const hitPos = new THREE.Vector3();
-          hitMesh.getWorldPosition(hitPos);
-          const p0 = hitPos.clone().project(this.camera);
-          const pFR = hitPos.clone().add(worldRight).project(this.camera);
-          const pFU = hitPos.clone().add(worldUp).project(this.camera);
-          const sFR = new THREE.Vector2(pFR.x-p0.x, pFR.y-p0.y).normalize();
-          const sFU = new THREE.Vector2(pFU.x-p0.x, pFU.y-p0.y).normalize();
-          const screenDir = new THREE.Vector2(dx, dy).normalize();
-          faceRight = screenDir.dot(sFR) > 0;
-          faceDown = screenDir.dot(sFU) > 0;
-          // Invert for U(0), D(1), B(3) where projected axes are flipped
-          if (faceIdx === 0 || faceIdx === 1 || faceIdx === 3) faceDown = !faceDown;
+        if (this._debugLog) {
+          this._debugLog(`END: ${FACE_IDX_TO_LETTER[endFace]}(${endRow},${endCol})`);
         }
 
-        if (edgeEntry) {
-          if (edgeEntry.consumed) {
-            if (this._debugLog) this._debugLog('→ CONSUMED');
-            this._isDragging = false; this._swipeFace = null; this._swipeSticker = null;
-            return;
+        // Try ring-based detection
+        const ringResult = resolveRingSwipe(faceIdx, row, col, endFace, endRow, endCol);
+
+        if (ringResult) {
+          const { turn, isCw, gap, ring } = ringResult;
+          if (this._debugLog) {
+            this._debugLog(`RING: ${ring} gap=${gap} ${isCw ? 'CW' : 'CCW'} → ${turn}${isCw ? '' : "'"}`);
           }
-          const adjFace = edgeEntry.face;
-          if (this._debugLog && edgeName) this._debugLog(`${edgeName} adj=${adjFace}`);
-          if (edgeEntry.isSlice) {
-            const sliceInv = edgeEntry.invert ? 1 : 0;
-            const dir = edgeEntry.dir;
-            let prime;
-            if (dir === 'right') prime = 1 ^ sliceInv;
-            else if (dir === 'left') prime = 0 ^ sliceInv;
-            else if (dir === 'down') prime = 0 ^ sliceInv;
-            else prime = 1 ^ sliceInv;
-            if (this._debugLog) this._debugLog(`SLICE: ${adjFace} ${prime ? 'CCW' : 'CW'}`);
-            this._doTurn(adjFace, prime);
-          } else {
-            const inv = edgeEntry.invert ? 1 : 0;
-            // Determine prime based on edge + swipe direction
-            let prime = 0;
-            if (edgeName === 'top' || edgeName === 'bottom') {
-              if (edgeName === 'top') {
-                prime = isHoriz
-                  ? (faceRight ? (inv ? 0 : 1) : (inv ? 1 : 0))
-                  : (faceDown ? (inv ? 1 : 0) : (inv ? 0 : 1));
-              } else {
-                prime = isHoriz
-                  ? (faceRight ? (inv ? 1 : 0) : (inv ? 0 : 1))
-                  : (faceDown ? (inv ? 0 : 1) : (inv ? 1 : 0));
-              }
-            } else if (edgeName === 'left') {
-              prime = faceDown ? (inv ? 1 : 0) : (inv ? 0 : 1);
-            } else {
-              prime = faceDown ? (inv ? 0 : 1) : (inv ? 1 : 0);
-            }
-            if (this._debugLog) this._debugLog(`TURN: ${adjFace} ${prime ? 'CCW' : 'CW'}`);
-            this._doTurn(adjFace, prime);
+          this._doTurn(turn, isCw ? 0 : 1);
+          this._isDragging = false;
+          this._swipeFace = null;
+          this._swipeSticker = null;
+          return;
+        }
+
+        // Fallback: if ring didn't match but we have a different face, try direct face turn
+        if (endFace !== faceIdx) {
+          const endLetter = FACE_IDX_TO_LETTER[endFace];
+          if (this._debugLog) this._debugLog(`FALLBACK: direct face ${endLetter}`);
+          // Use drag direction to determine prime
+          const isHoriz = Math.abs(dx) >= Math.abs(dy);
+          const isRight = dx > 0;
+          const isDown = dy > 0;
+          // Simple heuristic: horizontal right/left, vertical down/up
+          let prime = 0;
+          if (endFace === 0 || endFace === 1) { // U or D
+            prime = isRight ? 0 : 1;
+          } else if (endFace === 4 || endFace === 5) { // L or R
+            prime = isDown ? 0 : 1;
+          } else { // F or B
+            prime = isHoriz ? (isRight ? 0 : 1) : (isDown ? 1 : 0);
           }
-          this._isDragging = false; this._swipeFace = null; this._swipeSticker = null;
+          if (this._debugLog) this._debugLog(`TURN: ${endLetter} ${prime ? 'CCW' : 'CW'}`);
+          this._doTurn(endLetter, prime);
+          this._isDragging = false;
+          this._swipeFace = null;
+          this._swipeSticker = null;
           return;
         }
       }
@@ -375,10 +346,11 @@ class CubeBuddy3D {
     // Tap — only center sticker
     if (this._swipeSticker && dist <= SWIPE_THRESHOLD) {
       const { faceIdx, row, col } = this._swipeSticker;
-      const adj = this.edgeAdjacency[faceIdx];
-      if (adj && (row !== 1 || col !== 1)) {
+      if (row !== 1 || col !== 1) {
         if (this._debugLog) this._debugLog(`TAP blocked: not center (${row},${col})`);
-        this._isDragging = false; this._swipeFace = null; this._swipeSticker = null;
+        this._isDragging = false;
+        this._swipeFace = null;
+        this._swipeSticker = null;
         return;
       }
     }
@@ -442,7 +414,7 @@ class CubeBuddy3D {
     }
   }
 
-  // Edge adjacency data (from verified debugging)
+  // Edge adjacency data (from verified debugging) — kept for fallback
   get edgeAdjacency() {
     return {
       2: { // F
@@ -563,125 +535,87 @@ class CubeBuddy3D {
           for (const [dir, fl] of Object.entries(facelets)) {
             const ci = get(fl.r, fl.c, fl.f);
             const sticker = new THREE.Mesh(this.faceGeo, new THREE.MeshStandardMaterial({
-              color: fl.ext ? FACE_COLORS_HEX[ci] : 0x111111,
-              roughness: fl.ext ? 0.2 : 0.9,
-              metalness: fl.ext ? 0.1 : 0,
+              map: this._getStickerTexture(ci),
+              roughness: 0.5,
+              metalness: 0.1,
             }));
-
-            const [dx, dy, dz] = fl.dir;
-            const halfSize = this.cubieSize / 2 + 0.015;
-            sticker.position.set(dx * halfSize, dy * halfSize, dz * halfSize);
-
-            if (dx === 1) sticker.rotation.y = Math.PI / 2;
-            else if (dx === -1) sticker.rotation.y = -Math.PI / 2;
-            else if (dy === 1) sticker.rotation.x = -Math.PI / 2;
-            else if (dy === -1) sticker.rotation.x = Math.PI / 2;
-            else if (dz === -1) sticker.rotation.y = Math.PI;
-
+            sticker.userData = {
+              isSticker: true,
+              isExternal: fl.ext,
+              faceIdx: fl.f,
+              row: fl.r,
+              col: fl.c,
+            };
             sticker.castShadow = true;
-            sticker.userData = { faceIdx: fl.f, row: fl.r, col: fl.c, isSticker: true, isExternal: fl.ext, dir: fl.dir };
+            // Position sticker on the correct face
+            const faceNormals = {
+              'px': [ 0.5, 0, 0], 'nx': [-0.5, 0, 0],
+              'py': [ 0, 0.5, 0], 'ny': [ 0,-0.5, 0],
+              'pz': [ 0, 0, 0.5], 'nz': [ 0, 0,-0.5],
+            };
+            const n = faceNormals[dir];
+            sticker.position.set(n[0], n[1], n[2]);
+            const lookTarget = new THREE.Vector3(n[0]*2, n[1]*2, n[2]*2);
+            sticker.lookAt(lookTarget);
             cubie.add(sticker);
-            if (fl.ext) this.stickerMeshes.push(sticker);
+            this.stickerMeshes.push(sticker);
           }
-
-          g.add(cubie);
+          this.cubeGroup.add(cubie);
         }
       }
     }
-
-    // Thin black outer border around each face (6 frames)
-    const faceBorderDefs = [
-      { dir: [ 0, 1, 0], rotX: -Math.PI / 2 }, // U
-      { dir: [ 0,-1, 0], rotX:  Math.PI / 2 }, // D
-      { dir: [ 0, 0, 1], rotY: 0 },            // F
-      { dir: [ 0, 0,-1], rotY: Math.PI },       // B
-      { dir: [-1, 0, 0], rotY: -Math.PI / 2 },  // L
-      { dir: [ 1, 0, 0], rotY:  Math.PI / 2 },  // R
-    ];
-    const halfSpan = this.gap + this.cubieSize / 2;
-    const fw = halfSpan * 2 + 0.06;
-    const fh = halfSpan * 2 + 0.06;
-    const frameGeo = new THREE.BoxGeometry(fw, fh, 0.01);
-    const frameMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.9, metalness: 0 });
-    for (const fd of faceBorderDefs) {
-      const [dx, dy, dz] = fd.dir;
-      const frame = new THREE.Mesh(frameGeo, frameMat);
-      frame.position.set(dx * halfSpan, dy * halfSpan, dz * halfSpan);
-      if (fd.rotX !== undefined) frame.rotation.x = fd.rotX;
-      if (fd.rotY !== undefined) frame.rotation.y = fd.rotY;
-      frame.userData = { isFaceBorder: true };
-      this.cubeGroup.add(frame);
-    }
-
-    // Index debug labels on external stickers -- disabled, 2D is cleaner for debugging
-    /*
-    this.cubeGroup.updateMatrixWorld(true);
-    for (const mesh of this.stickerMeshes) {
-      ...
-    }
-    */
   }
 
-  // Snap cube face toward camera
-  snapToFace(face) {
-    const camDir = new THREE.Vector3(4.4, 3.3, 5.5).normalize();
-    const camRight = new THREE.Vector3(0, 1, 0).cross(camDir).normalize();
-    const camUp = new THREE.Vector3().crossVectors(camRight, camDir).normalize();
+  _getStickerTexture(colorIdx) {
+    const colors = [
+      0xffffff, // 0: White (U)
+      0xffff00, // 1: Yellow (D)
+      0x00ff00, // 2: Green (F)
+      0x3366ff, // 3: Blue (B)
+      0xff8800, // 4: Orange (L)
+      0xff0000, // 5: Red (R)
+      0x222222, // 6: internal (black)
+    ];
+    const c = colors[colorIdx] || 0x222222;
+    const canvas = document.createElement('canvas');
+    canvas.width = 64;
+    canvas.height = 64;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#' + c.toString(16).padStart(6, '0');
+    ctx.fillRect(0, 0, 64, 64);
+    // Rounded-corner effect
+    ctx.fillStyle = 'rgba(0,0,0,0.15)';
+    const r = 4;
+    ctx.beginPath();
+    ctx.moveTo(0, r); ctx.lineTo(0, 64);
+    ctx.lineTo(64, 64); ctx.lineTo(64, 0);
+    ctx.lineTo(r, 0); ctx.arc(r, r, r, Math.PI * 1.5, Math.PI);
+    ctx.fill();
+    return new THREE.CanvasTexture(canvas);
+  }
 
-    const faceUp = {
-      'U': new THREE.Vector3(0, 0, -1),
-      'D': new THREE.Vector3(0, 0, -1),
-      'F': new THREE.Vector3(0, 1, 0),
-      'C': new THREE.Vector3(0, 1, 0), // Center = Front
-      'B': new THREE.Vector3(0, 1, 0),
-      'L': new THREE.Vector3(0, 1, 0),
-      'R': new THREE.Vector3(0, 1, 0),
-    };
-
+  focusFace(face) {
+    // Animate camera to focus on a given face using face-normal orientation.
+    // face: 'U', 'D', 'F', 'B', 'L', 'R'
     const faceNormals = {
       'U': new THREE.Vector3(0, 1, 0),
       'D': new THREE.Vector3(0, -1, 0),
       'F': new THREE.Vector3(0, 0, 1),
-      'C': new THREE.Vector3(0, 0, 1), // Center = Front
       'B': new THREE.Vector3(0, 0, -1),
       'L': new THREE.Vector3(-1, 0, 0),
       'R': new THREE.Vector3(1, 0, 0),
     };
 
-    const fn = faceNormals[face].clone();
-    const q1 = new THREE.Quaternion().setFromUnitVectors(fn, camDir);
+    const n = faceNormals[face];
+    if (!n) return;
 
-    const fu = faceUp[face].clone().applyQuaternion(q1);
-    const projLen = fu.dot(camDir);
-    const proj = new THREE.Vector3().copy(fu).addScaledVector(camDir, -projLen);
-
-    let q2;
-    if (proj.length() < 0.001) {
-      const faceRight = { 'U': new THREE.Vector3(1, 0, 0), 'D': new THREE.Vector3(-1, 0, 0) };
-      const fr = faceRight[face].clone().applyQuaternion(q1);
-      const projRight = new THREE.Vector3().copy(fr).addScaledVector(camDir, -fr.dot(camDir));
-      q2 = new THREE.Quaternion().setFromUnitVectors(projRight.normalize(), camRight);
-    } else {
-      q2 = new THREE.Quaternion().setFromUnitVectors(proj.normalize(), camUp.clone().negate());
-    }
-
-    let finalQ = q2.clone().multiply(q1);
-    if (face === 'D' || face === 'B') {
-      const nf = faceNormals[face].clone().applyQuaternion(finalQ);
-      const spin180 = new THREE.Quaternion().setFromAxisAngle(nf, Math.PI);
-      this.cubeGroup.quaternion.copy(spin180.multiply(finalQ));
-    } else {
-      this.cubeGroup.quaternion.copy(finalQ);
-    }
+    const camPos = n.clone().multiplyScalar(6);
+    const lookAt = new THREE.Vector3(0, 0, 0);
+    this.camera.position.copy(camPos);
+    this.camera.lookAt(lookAt);
+    this.cubeGroup.quaternion.identity();
     this.cubeGroup.rotation.setFromQuaternion(this.cubeGroup.quaternion);
   }
-
-  toggleOrbitDir() {
-    this.orbitInverted = !this.orbitInverted;
-  }
-
-  get moves() { return this._moves; }
-  set moves(v) { this._moves = v; }
 
   _createLabelSprite(text) {
     const canvas = document.createElement('canvas');

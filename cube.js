@@ -234,9 +234,12 @@ class RubiksCube {
     const n = prime ? 3 : 1;
 
     // Slice moves
-    if (m === 'E') { for (let i = 0; i < n; i++) this.turnECW(); return; }
+    // NOTE: turnECW/ECCW actually move S-ring stickers (F3,R3,B3,L3)
+    //       turnSCW/SCCW actually move E-ring stickers (U3,L7,D5,R1)
+    // So we call the correct function for each slice letter:
+    if (m === 'E') { if (prime) { this.turnSCCW(); return; } this.turnSCW(); return; }
     if (m === 'M') { for (let i = 0; i < n; i++) this.turnMCW(); return; }
-    if (m === 'S') { if (prime) { this.turnSCCW(); return; } this.turnSCW(); return; }
+    if (m === 'S') { for (let i = 0; i < n; i++) this.turnECW(); return; }
 
     // Face moves via turnFace
     this.turnFace(move);
