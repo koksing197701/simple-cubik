@@ -1221,7 +1221,6 @@ class CubeBuddyApp {
   }
 
   // Remap all stickers so each face shows its center color
-  // Read center of each face → build a color mapping → apply to every sticker
   _alignFaces() {
     const s = this.cube._state;
     const centerOf = [0,1,2,3,4,5].map(f => s[f * 9 + 4]);
@@ -1253,7 +1252,8 @@ class CubeBuddyApp {
       if (this._debugVisible) el.textContent = '🐛 Debug ON';
     }
     if (el2) {
-      el2.style.display = 'none';
+      el2.style.display = this._debugVisible ? 'block' : 'none';
+      if (this._debugVisible) el2.textContent = '';
     }
     const btn = document.getElementById('debug-btn');
     if (btn) btn.textContent = this._debugVisible ? '🐛ON' : '🐛';
@@ -1279,7 +1279,13 @@ class CubeBuddyApp {
   }
 
   _debugLogBottom(msg) {
-    // disabled
+    if (!this._debugVisible) return;
+    const el = document.getElementById('debug-overlay-bottom');
+    if (el) {
+      const lines = (el.textContent || '').split('\n');
+      lines.push(msg);
+      el.textContent = lines.slice(-6).join('\n');
+    }
   }
 
   // Expose debug in 3D CubeBuddy3D instance
