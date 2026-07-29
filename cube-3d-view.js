@@ -103,8 +103,10 @@ $3d.prototype._getStickerAtPoint = function(clientX, clientY) {
 
   // Try raycast first
   var hits = ray.intersectObjects(this.meshMod.stickerMeshes, false);
-  if (hits.length > 0 && hits[0].object.userData.isSticker && hits[0].object.userData.isExternal) {
-    return hits[0].object;
+  for (var hi = 0; hi < hits.length; hi++) {
+    if (hits[hi].object.userData.isSticker && hits[hi].object.userData.isExternal) {
+      return hits[hi].object;
+    }
   }
 
   // Projection fallback
