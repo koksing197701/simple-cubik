@@ -81,6 +81,9 @@ $3d = function CubeBuddy3D(options) {
     if (self._debugLog) self._debugLog(msg);
   };
 
+  // Expose for debugging
+  window.__cube3d = this;
+
   // --- Debug (injected by app) ---
   this._debugLog = null;
   this._debugLogBottom = null;

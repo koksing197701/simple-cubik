@@ -206,12 +206,14 @@ CubeMesh.prototype.updateStickerUserData = function() {
     var py = Math.round(cubie.position.y / 0.01) * 0.01;
     var pz = Math.round(cubie.position.z / 0.01) * 0.01;
 
-    // Determine face direction from sticker's local position
-    var sp = mesh.position;
+    // Determine face direction from sticker's WORLD position
+    // Transform sticker local direction to world space via cubie quaternion
+    var sp = mesh.position.clone();
+    var worldDir = sp.clone().applyQuaternion(cubie.quaternion).normalize();
     var dir = '';
-    if (Math.abs(sp.x) > 0.2) dir = sp.x > 0 ? 'px' : 'nx';
-    else if (Math.abs(sp.y) > 0.2) dir = sp.y > 0 ? 'py' : 'ny';
-    else if (Math.abs(sp.z) > 0.2) dir = sp.z > 0 ? 'pz' : 'nz';
+    if (Math.abs(worldDir.x) > 0.5) dir = worldDir.x > 0 ? 'px' : 'nx';
+    else if (Math.abs(worldDir.y) > 0.5) dir = worldDir.y > 0 ? 'py' : 'ny';
+    else if (Math.abs(worldDir.z) > 0.5) dir = worldDir.z > 0 ? 'pz' : 'nz';
     if (!dir) continue;
 
     var gx = Math.round(px / gap);
