@@ -57,7 +57,7 @@ CubeMesh.prototype._getStickerTexture = function(colorIdx) {
   ctx.fillStyle = '#222222';
   ctx.fillRect(0, 0, 128, 128);
   // Inner color fill — 92% area for visual border
-  var margin = 5;
+  var margin = 8;
   ctx.fillStyle = '#' + c.toString(16).padStart(6, '0');
   ctx.fillRect(margin, margin, 128 - margin * 2, 128 - margin * 2);
   return new THREE.CanvasTexture(canvas);

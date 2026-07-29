@@ -28,7 +28,7 @@ OrbitController.prototype.toggleInverted = function() {
 
 OrbitController.prototype.onDrag = function(dx, dy) {
   var inv = this._inverted ? -1 : 1;
-  var worldUp = new THREE.Vector3(0, 1, 0);
+  var worldUp = this.camera.up.clone();
   var camPos = this.camera.position.clone();
   var camForward = new THREE.Vector3().subVectors(new THREE.Vector3(0, 0, 0), camPos).normalize();
   var camRight = new THREE.Vector3().crossVectors(camForward, worldUp).normalize();
