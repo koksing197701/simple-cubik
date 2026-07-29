@@ -102,6 +102,7 @@ CubeMesh.prototype.build = function(cubeGroup) {
 
         for (var dir in facelets) {
           var fl = facelets[dir];
+          if (!fl.ext) continue;  // skip internal faces
           var ci = get(fl.r, fl.c, fl.f);
           var sticker = new THREE.Mesh(this.faceGeo, new THREE.MeshStandardMaterial({
             map: this._getStickerTexture(ci),

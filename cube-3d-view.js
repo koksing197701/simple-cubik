@@ -20,7 +20,7 @@ $3d = function CubeBuddy3D(options) {
   this.meshMod = new CubeMesh({
     cube: this.cube,
     cubieSize: 0.70,
-    gap: 0.78,
+    gap: 0.73,
     stickerThickness: 0.04,
     coreSize: 0.70,
     coreColor: 0x111111
@@ -153,7 +153,7 @@ $3d.prototype.focusFace = function(face) {
   };
   var n = normals[face];
   if (!n) return;
-  var camPos = n.clone().multiplyScalar(6);
+  var camPos = n.clone().multiplyScalar(7.5);
   this.rendererMod.camera.position.copy(camPos);
   this.rendererMod.camera.lookAt(0, 0, 0);
   this.orbitCtrl.reset();
