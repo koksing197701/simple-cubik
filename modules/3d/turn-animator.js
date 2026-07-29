@@ -29,19 +29,19 @@ function TurnAnimator(cubeGroup, cubeState, callbacks) {
     'B': { axisVec: new THREE.Vector3(0, 0, 1), layerComp: 'z', layerVal: -1 },
     'L': { axisVec: new THREE.Vector3(1, 0, 0), layerComp: 'x', layerVal: -1 },
     'R': { axisVec: new THREE.Vector3(1, 0, 0), layerComp: 'x', layerVal: 1 },
+    'S': { axisVec: new THREE.Vector3(0, 0, 1), layerComp: 'z', layerVal: 0 },
+    'M': { axisVec: new THREE.Vector3(1, 0, 0), layerComp: 'x', layerVal: 0 },
+    'E': { axisVec: new THREE.Vector3(0, -1, 0), layerComp: 'y', layerVal: 0 },
   };
 
   this.FACE_SIGN = {
     'U': -1, 'D': 1,
     'F': -1, 'B': 1,
     'L': 1, 'R': -1,
+    'S': -1, 'M': 1, 'E': 1,
   };
 
-  this.SLICE_AXIS = {
-    'S': { axis: new THREE.Vector3(0, 0, 1) },
-    'M': { axis: new THREE.Vector3(1, 0, 0) },
-    'E': { axis: new THREE.Vector3(0, -1, 0) },
-  };
+  this.SLICE_AXIS = {};
 }
 
 TurnAnimator.prototype.isAnimating = function() {
@@ -69,14 +69,7 @@ TurnAnimator.prototype.doTurn = function(face, prime) {
   this.cubeState.doMove(move);
   this._moves++;
 
-  // Slice moves — just rebuild (no animation for now)
-  if (this.SLICE_AXIS[face]) {
-    if (this.callbacks.rebuild) this.callbacks.rebuild();
-    this._animating = false;
-    if (this.callbacks.onMovesChange) this.callbacks.onMovesChange(this._moves);
-    if (this.callbacks.onTurn) this.callbacks.onTurn(move);
-    return;
-  }
+  // Slice moves — use same animation path (S/M/E now in AXIS_MAP)
 
   // Find cubies on this layer
   var layerCubies = [];
