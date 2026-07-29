@@ -53,13 +53,8 @@ CubeMesh.prototype._getStickerTexture = function(colorIdx) {
   canvas.width = 128;
   canvas.height = 128;
   var ctx = canvas.getContext('2d');
-  // Dark outer border (thin)
-  ctx.fillStyle = '#222222';
-  ctx.fillRect(0, 0, 128, 128);
-  // Inner color fill — 92% area for visual border
-  var margin = 8;
   ctx.fillStyle = '#' + c.toString(16).padStart(6, '0');
-  ctx.fillRect(margin, margin, 128 - margin * 2, 128 - margin * 2);
+  ctx.fillRect(0, 0, 128, 128);
   return new THREE.CanvasTexture(canvas);
 };
 
@@ -107,27 +102,40 @@ CubeMesh.prototype.build = function(cubeGroup) {
 
         for (var dir in facelets) {
           var fl = facelets[dir];
-          if (!fl.ext) continue;  // skip internal faces
+          if (!fl.ext) continue;
           var ci = get(fl.r, fl.c, fl.f);
-          var sticker = new THREE.Mesh(this.faceGeo, new THREE.MeshStandardMaterial({
-            map: this._getStickerTexture(ci),
-            roughness: 0.5,
-            metalness: 0.1,
-          }));
-          sticker.userData = {
-            isSticker: true,
-            isExternal: fl.ext,
-            faceIdx: fl.f,
-            row: fl.r,
-            col: fl.c,
-          };
-          sticker.castShadow = true;
           var n = faceNormals[dir];
-          sticker.position.set(n[0], n[1], n[2]);
           var lookTarget = new THREE.Vector3(n[0]*2, n[1]*2, n[2]*2);
-          sticker.lookAt(lookTarget);
-          cubie.add(sticker);
-          this._stickerMeshes.push(sticker);
+
+          // Dark base frame (full size, 3D depth)
+          var borderMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.9 });
+          var baseSticker = new THREE.Mesh(
+            new THREE.BoxGeometry(this.cubieSize, this.cubieSize, this.stickerThickness),
+            borderMat
+          );
+          baseSticker.userData = { isSticker:true, isExternal:fl.ext, faceIdx:fl.f, row:fl.r, col:fl.c };
+          baseSticker.position.set(n[0], n[1], n[2]);
+          baseSticker.lookAt(lookTarget);
+          cubie.add(baseSticker);
+          this._stickerMeshes.push(baseSticker);
+
+          // Colored face on top (92% size, sits slightly outward)
+          var fs = this.cubieSize * 0.92;
+          var faceSticker = new THREE.Mesh(
+            new THREE.BoxGeometry(fs, fs, this.stickerThickness),
+            new THREE.MeshStandardMaterial({ map: this._getStickerTexture(ci), roughness: 0.5, metalness: 0.1 })
+          );
+          faceSticker.userData = { isSticker:true, isExternal:fl.ext, faceIdx:fl.f, row:fl.r, col:fl.c };
+          // Push forward by half thickness so it sits on the base surface
+          var sign = (n[0]||n[1]||n[2]) > 0 ? 1 : -1;
+          faceSticker.position.set(
+            n[0] + (n[0]!==0?sign*this.stickerThickness*0.5:0),
+            n[1] + (n[1]!==0?sign*this.stickerThickness*0.5:0),
+            n[2] + (n[2]!==0?sign*this.stickerThickness*0.5:0)
+          );
+          faceSticker.lookAt(lookTarget);
+          cubie.add(faceSticker);
+          this._stickerMeshes.push(faceSticker);
         }
         g.add(cubie);
       }
