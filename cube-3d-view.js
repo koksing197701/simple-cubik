@@ -103,7 +103,7 @@ $3d.prototype._getStickerAtPoint = function(clientX, clientY) {
 
   // Try raycast first
   var hits = ray.intersectObjects(this.meshMod.stickerMeshes, false);
-  if (hits.length > 0 && hits[0].object.userData.isSticker) {
+  if (hits.length > 0 && hits[0].object.userData.isSticker && hits[0].object.userData.isExternal) {
     return hits[0].object;
   }
 
@@ -113,7 +113,7 @@ $3d.prototype._getStickerAtPoint = function(clientX, clientY) {
   var best = null, bestDist = 35;
   for (var i = 0; i < this.meshMod.stickerMeshes.length; i++) {
     var mesh = this.meshMod.stickerMeshes[i];
-    if (!mesh.userData.isSticker) continue;
+    if (!mesh.userData.isSticker || !mesh.userData.isExternal) continue;
     mesh.getWorldPosition(vec);
     vec.project(this.rendererMod.camera);
     if (vec.z >= 1) continue;

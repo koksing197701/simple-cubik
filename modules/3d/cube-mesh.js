@@ -188,26 +188,20 @@ CubeMesh.prototype.destroy = function(cubeGroup) {
 
 CubeMesh.prototype.updateStickerUserData = function() {
   var gap = this.gap;
-  var facelets = {
-    'px': { f: 5, r: 0 }, 'nx': { f: 4, r: 0 },
-    'py': { f: 0, r: 0 }, 'ny': { f: 1, r: 0 },
-    'pz': { f: 2, r: 0 }, 'nz': { f: 3, r: 0 },
-  };
-  // Pre-compute row/col formulas for each direction
-  var formulas = {
-    'px': { r: function(gy,gz) { return 1-gy; }, c: function(gy,gz) { return 1-gz; } },
-    'nx': { r: function(gy,gz) { return 1-gy; }, c: function(gy,gz) { return gz+1; } },
-    'py': { r: function(gz,gx) { return gz+1; }, c: function(gz,gx) { return gx+1; } },
-    'ny': { r: function(gz,gx) { return 1-gz; }, c: function(gz,gx) { return gx+1; } },
-    'pz': { r: function(gy,gx) { return 1-gy; }, c: function(gy,gx) { return gx+1; } },
-    'nz': { r: function(gy,gx) { return 1-gy; }, c: function(gy,gx) { return 1-gx; } },
+  // facelets and formulas for mapping
+  var faceData = {
+    'px': { f: 5, r: function(gy,gz) { return 1-gy; }, c: function(gy,gz) { return 1-gz; } },
+    'nx': { f: 4, r: function(gy,gz) { return 1-gy; }, c: function(gy,gz) { return gz+1; } },
+    'py': { f: 0, r: function(gz,gx) { return gz+1; }, c: function(gz,gx) { return gx+1; } },
+    'ny': { f: 1, r: function(gz,gx) { return 1-gz; }, c: function(gz,gx) { return gx+1; } },
+    'pz': { f: 2, r: function(gy,gx) { return 1-gy; }, c: function(gy,gx) { return gx+1; } },
+    'nz': { f: 3, r: function(gy,gx) { return 1-gy; }, c: function(gy,gx) { return 1-gx; } },
   };
   for (var i = 0; i < this._stickerMeshes.length; i++) {
     var mesh = this._stickerMeshes[i];
     var cubie = mesh.parent;
     if (!cubie) continue;
 
-    // Snap cubie position to grid
     var px = Math.round(cubie.position.x / 0.01) * 0.01;
     var py = Math.round(cubie.position.y / 0.01) * 0.01;
     var pz = Math.round(cubie.position.z / 0.01) * 0.01;
@@ -220,22 +214,26 @@ CubeMesh.prototype.updateStickerUserData = function() {
     else if (Math.abs(sp.z) > 0.2) dir = sp.z > 0 ? 'pz' : 'nz';
     if (!dir) continue;
 
-    // Grid coordinates
     var gx = Math.round(px / gap);
     var gy = Math.round(py / gap);
     var gz = Math.round(pz / gap);
 
-    var fl = facelets[dir];
-    var fm = formulas[dir];
+    // Update external/internal flag
+    var isExt = (dir === 'px' && gx === 1) || (dir === 'nx' && gx === -1) ||
+                (dir === 'py' && gy === 1) || (dir === 'ny' && gy === -1) ||
+                (dir === 'pz' && gz === 1) || (dir === 'nz' && gz === -1);
+    mesh.userData.isExternal = isExt;
+
+    var fd = faceData[dir];
     var row, col;
     if (dir === 'px' || dir === 'nx') {
-      row = fm.r(gy, gz); col = fm.c(gy, gz);
+      row = fd.r(gy, gz); col = fd.c(gy, gz);
     } else if (dir === 'py' || dir === 'ny') {
-      row = fm.r(gz, gx); col = fm.c(gz, gx);
+      row = fd.r(gz, gx); col = fd.c(gz, gx);
     } else {
-      row = fm.r(gy, gx); col = fm.c(gy, gx);
+      row = fd.r(gy, gx); col = fd.c(gy, gx);
     }
-    mesh.userData.faceIdx = fl.f;
+    mesh.userData.faceIdx = fd.f;
     mesh.userData.row = row;
     mesh.userData.col = col;
   }
