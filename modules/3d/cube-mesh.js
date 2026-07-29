@@ -13,6 +13,25 @@
 (function() {
 'use strict';
 
+// Polyfill roundRect for Three.js r128 (missing from Shape)
+if (!THREE.Shape.prototype.roundRect) {
+  THREE.Shape.prototype.roundRect = function(x, y, w, h, r) {
+    r = Math.min(r, Math.abs(w) / 2, Math.abs(h) / 2);
+    var sx = x, sy = y;
+    var ex = x + w, ey = y + h;
+    this.moveTo(sx + r, sy);
+    this.lineTo(ex - r, sy);
+    this.quadraticCurveTo(ex, sy, ex, sy + r);
+    this.lineTo(ex, ey - r);
+    this.quadraticCurveTo(ex, ey, ex - r, ey);
+    this.lineTo(sx + r, ey);
+    this.quadraticCurveTo(sx, ey, sx, ey - r);
+    this.lineTo(sx, sy + r);
+    this.quadraticCurveTo(sx, sy, sx + r, sy);
+    return this;
+  };
+}
+
 function CubeMesh(options) {
   options = options || {};
   this.cube = options.cube || null;
@@ -53,15 +72,8 @@ CubeMesh.prototype._getStickerTexture = function(colorIdx) {
   canvas.width = 128;
   canvas.height = 128;
   var ctx = canvas.getContext('2d');
-  // Dark border all around
-  ctx.fillStyle = '#222222';
-  ctx.fillRect(0, 0, 128, 128);
-  // Rounded color area on top (inset 8px, larger roundness)
   ctx.fillStyle = '#' + c.toString(16).padStart(6, '0');
-  var R = 28;
-  ctx.beginPath();
-  ctx.roundRect(8, 8, 112, 112, R);
-  ctx.fill();
+  ctx.fillRect(0, 0, 128, 128);
   return new THREE.CanvasTexture(canvas);
 };
 
@@ -126,10 +138,16 @@ CubeMesh.prototype.build = function(cubeGroup) {
           cubie.add(baseSticker);
           this._stickerMeshes.push(baseSticker);
 
-          // Colored face on top (92% size, sits slightly outward)
+          // Colored face on top (92% size, 3D rounded rectangle via extrusion)
           var fs = this.cubieSize * 0.92;
+          var shape = new THREE.Shape();
+          var rr = fs * 0.18;  // round radius
+          shape.roundRect(-fs/2, -fs/2, fs, fs, rr);
+          var faceGeo = new THREE.ExtrudeGeometry(shape, { depth: this.stickerThickness, bevelEnabled: false });
+          faceGeo.translate(0, 0, -this.stickerThickness / 2);
+          faceGeo.computeVertexNormals();
           var faceSticker = new THREE.Mesh(
-            new THREE.BoxGeometry(fs, fs, this.stickerThickness),
+            faceGeo,
             new THREE.MeshStandardMaterial({ map: this._getStickerTexture(ci), roughness: 0.5, metalness: 0.1 })
           );
           faceSticker.userData = { isSticker:true, isExternal:fl.ext, faceIdx:fl.f, row:fl.r, col:fl.c };
