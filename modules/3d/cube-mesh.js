@@ -54,10 +54,7 @@ CubeMesh.prototype._getStickerTexture = function(colorIdx) {
   canvas.height = 128;
   var ctx = canvas.getContext('2d');
   ctx.fillStyle = '#' + c.toString(16).padStart(6, '0');
-  var R = 24;
-  ctx.beginPath();
-  ctx.roundRect(0, 0, 128, 128, R);
-  ctx.fill();
+  ctx.fillRect(0, 0, 128, 128);
   return new THREE.CanvasTexture(canvas);
 };
 
@@ -122,16 +119,10 @@ CubeMesh.prototype.build = function(cubeGroup) {
           cubie.add(baseSticker);
           this._stickerMeshes.push(baseSticker);
 
-          // Colored face on top (92% size, 3D rounded edges with bevel)
+          // Colored face on top (92% size, sits slightly outward)
           var fs = this.cubieSize * 0.92;
-          var shape = new THREE.Shape();
-          var r = fs * 0.15;  // round radius (15% of sticker size)
-          shape.roundRect(-fs/2, -fs/2, fs, fs, r);
-          var extSettings = { depth: this.stickerThickness, bevelEnabled: true, bevelThickness: 0.015, bevelSize: 0.008, bevelSegments: 4 };
-          var faceGeo = new THREE.ExtrudeGeometry(shape, extSettings);
-          faceGeo.translate(0, 0, -this.stickerThickness / 2);  // center the geometry
           var faceSticker = new THREE.Mesh(
-            faceGeo,
+            new THREE.BoxGeometry(fs, fs, this.stickerThickness),
             new THREE.MeshStandardMaterial({ map: this._getStickerTexture(ci), roughness: 0.5, metalness: 0.1 })
           );
           faceSticker.userData = { isSticker:true, isExternal:fl.ext, faceIdx:fl.f, row:fl.r, col:fl.c };
