@@ -56,11 +56,11 @@ CubeMesh.prototype._getStickerTexture = function(colorIdx) {
   // Dark border all around
   ctx.fillStyle = '#222222';
   ctx.fillRect(0, 0, 128, 128);
-  // Rounded color area on top (inset 3px)
+  // Rounded color area on top (inset 8px, larger roundness)
   ctx.fillStyle = '#' + c.toString(16).padStart(6, '0');
-  var R = 22;
+  var R = 28;
   ctx.beginPath();
-  ctx.roundRect(3, 3, 122, 122, R);
+  ctx.roundRect(8, 8, 112, 112, R);
   ctx.fill();
   return new THREE.CanvasTexture(canvas);
 };
