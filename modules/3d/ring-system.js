@@ -55,7 +55,9 @@ function resolveRingSwipe(startFaceIdx, startRow, startCol, endFaceIdx, endRow, 
     var goingForward = fwdSteps <= bwdSteps;
     var isCw = goingForward ? RING_FORWARD_IS_CW[ringName] : !RING_FORWARD_IS_CW[ringName];
 
-    return { ring: ringName, turn: ringName, isCw: isCw, gap: gap };
+    // Swapped: ring detects S but returns E and vice versa (cube.js has E/S swapped)
+    var turnName = ringName === 'S' ? 'E' : ringName === 'E' ? 'S' : ringName;
+    return { ring: ringName, turn: turnName, isCw: isCw, gap: gap };
   }
   return null;
 }
