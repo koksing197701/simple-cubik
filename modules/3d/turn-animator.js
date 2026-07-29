@@ -6,7 +6,7 @@
 //            isAnimating(), moves, resetMoves()
 //            edgeAdjacency (getter)
 // Depends:   THREE (global)
-// Callbacks: { rebuild, onMovesChange, onTurn, onDebugLog, onDebugLogBottom }
+// Callbacks: { rebuild, onMovesChange, onTurn, onStickerUpdate, onDebugLog, onDebugLogBottom }
 // Changelog:
 //   2.0.0 - Clark-style quaternion-from-save rotation. No reparenting.
 //           Dynamic gap detection. Cubic easing, 180ms. No rebuild after turn.
@@ -160,6 +160,8 @@ TurnAnimator.prototype.doTurn = function(face, prime) {
 
       self._animating = false;
       // No rebuild — cubies rotate physically, stickers move with them
+      // Update sticker userData to match new positions
+      if (self.callbacks.onStickerUpdate) self.callbacks.onStickerUpdate();
       if (self.callbacks.onMovesChange) self.callbacks.onMovesChange(self._moves);
       if (self.callbacks.onTurn) self.callbacks.onTurn(move);
     }

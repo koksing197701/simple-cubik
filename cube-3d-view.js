@@ -32,6 +32,7 @@ $3d = function CubeBuddy3D(options) {
 
   this.animator = new TurnAnimator(this.rendererMod.cubeGroup, this.cube, {
     rebuild: function() { self.rebuild(); },
+    onStickerUpdate: function() { self.meshMod.updateStickerUserData(); },
     onMovesChange: function(n) { if (self.onMovesChange) self.onMovesChange(n); },
     onTurn: function(m) { if (self.onTurn) self.onTurn(m); },
     onDebugLog: function(msg) { if (self._debugLog) self._debugLog(msg); },

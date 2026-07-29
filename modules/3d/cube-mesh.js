@@ -186,6 +186,61 @@ CubeMesh.prototype.destroy = function(cubeGroup) {
   this._cubieCores = [];
 };
 
+CubeMesh.prototype.updateStickerUserData = function() {
+  var gap = this.gap;
+  var facelets = {
+    'px': { f: 5, r: 0 }, 'nx': { f: 4, r: 0 },
+    'py': { f: 0, r: 0 }, 'ny': { f: 1, r: 0 },
+    'pz': { f: 2, r: 0 }, 'nz': { f: 3, r: 0 },
+  };
+  // Pre-compute row/col formulas for each direction
+  var formulas = {
+    'px': { r: function(gy,gz) { return 1-gy; }, c: function(gy,gz) { return 1-gz; } },
+    'nx': { r: function(gy,gz) { return 1-gy; }, c: function(gy,gz) { return gz+1; } },
+    'py': { r: function(gz,gx) { return gz+1; }, c: function(gz,gx) { return gx+1; } },
+    'ny': { r: function(gz,gx) { return 1-gz; }, c: function(gz,gx) { return gx+1; } },
+    'pz': { r: function(gy,gx) { return 1-gy; }, c: function(gy,gx) { return gx+1; } },
+    'nz': { r: function(gy,gx) { return 1-gy; }, c: function(gy,gx) { return 1-gx; } },
+  };
+  for (var i = 0; i < this._stickerMeshes.length; i++) {
+    var mesh = this._stickerMeshes[i];
+    var cubie = mesh.parent;
+    if (!cubie) continue;
+
+    // Snap cubie position to grid
+    var px = Math.round(cubie.position.x / 0.01) * 0.01;
+    var py = Math.round(cubie.position.y / 0.01) * 0.01;
+    var pz = Math.round(cubie.position.z / 0.01) * 0.01;
+
+    // Determine face direction from sticker's local position
+    var sp = mesh.position;
+    var dir = '';
+    if (Math.abs(sp.x) > 0.2) dir = sp.x > 0 ? 'px' : 'nx';
+    else if (Math.abs(sp.y) > 0.2) dir = sp.y > 0 ? 'py' : 'ny';
+    else if (Math.abs(sp.z) > 0.2) dir = sp.z > 0 ? 'pz' : 'nz';
+    if (!dir) continue;
+
+    // Grid coordinates
+    var gx = Math.round(px / gap);
+    var gy = Math.round(py / gap);
+    var gz = Math.round(pz / gap);
+
+    var fl = facelets[dir];
+    var fm = formulas[dir];
+    var row, col;
+    if (dir === 'px' || dir === 'nx') {
+      row = fm.r(gy, gz); col = fm.c(gy, gz);
+    } else if (dir === 'py' || dir === 'ny') {
+      row = fm.r(gz, gx); col = fm.c(gz, gx);
+    } else {
+      row = fm.r(gy, gx); col = fm.c(gy, gx);
+    }
+    mesh.userData.faceIdx = fl.f;
+    mesh.userData.row = row;
+    mesh.userData.col = col;
+  }
+};
+
 window.CubeMesh = CubeMesh;
 
 })();
