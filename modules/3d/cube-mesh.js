@@ -54,10 +54,7 @@ CubeMesh.prototype._getStickerTexture = function(colorIdx) {
   canvas.height = 128;
   var ctx = canvas.getContext('2d');
   ctx.fillStyle = '#' + c.toString(16).padStart(6, '0');
-  var R = 12;
-  ctx.beginPath();
-  ctx.roundRect(0, 0, 128, 128, R);
-  ctx.fill();
+  ctx.fillRect(0, 0, 128, 128);
   return new THREE.CanvasTexture(canvas);
 };
 
@@ -96,10 +93,11 @@ CubeMesh.prototype.build = function(cubeGroup) {
           'nz': { f: 3, r: 1-y, c: 1-x, ext: z === -1 },
         };
 
+        var halfOffset = this.cubieSize / 2;
         var faceNormals = {
-          'px': [ 0.5, 0, 0], 'nx': [-0.5, 0, 0],
-          'py': [ 0, 0.5, 0], 'ny': [ 0,-0.5, 0],
-          'pz': [ 0, 0, 0.5], 'nz': [ 0, 0,-0.5],
+          'px': [ halfOffset, 0, 0], 'nx': [-halfOffset, 0, 0],
+          'py': [ 0, halfOffset, 0], 'ny': [ 0,-halfOffset, 0],
+          'pz': [ 0, 0, halfOffset], 'nz': [ 0, 0,-halfOffset],
         };
 
         for (var dir in facelets) {
