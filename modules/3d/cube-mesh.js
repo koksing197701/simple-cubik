@@ -53,8 +53,13 @@ CubeMesh.prototype._getStickerTexture = function(colorIdx) {
   canvas.width = 128;
   canvas.height = 128;
   var ctx = canvas.getContext('2d');
-  ctx.fillStyle = '#' + c.toString(16).padStart(6, '0');
+  // Dark outer border (thin)
+  ctx.fillStyle = '#222222';
   ctx.fillRect(0, 0, 128, 128);
+  // Inner color fill — 92% area for visual border
+  var margin = 5;
+  ctx.fillStyle = '#' + c.toString(16).padStart(6, '0');
+  ctx.fillRect(margin, margin, 128 - margin * 2, 128 - margin * 2);
   return new THREE.CanvasTexture(canvas);
 };
 

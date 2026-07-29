@@ -155,6 +155,10 @@ $3d.prototype.focusFace = function(face) {
   if (!n) return;
   var camPos = n.clone().multiplyScalar(7.5);
   this.rendererMod.camera.position.copy(camPos);
+  // Fix gimbal lock for U/D: rotate camera up axis
+  if (face === 'U') this.rendererMod.camera.up.set(0, 0, -1);
+  else if (face === 'D') this.rendererMod.camera.up.set(0, 0, 1);
+  else this.rendererMod.camera.up.set(0, 1, 0);
   this.rendererMod.camera.lookAt(0, 0, 0);
   this.orbitCtrl.reset();
 };
