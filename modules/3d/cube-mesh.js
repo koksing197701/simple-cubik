@@ -54,10 +54,7 @@ CubeMesh.prototype._getStickerTexture = function(colorIdx) {
   canvas.height = 128;
   var ctx = canvas.getContext('2d');
   ctx.fillStyle = '#' + c.toString(16).padStart(6, '0');
-  var R = 20;
-  ctx.beginPath();
-  ctx.roundRect(0, 0, 128, 128, R);
-  ctx.fill();
+  ctx.fillRect(0, 0, 128, 128);
   return new THREE.CanvasTexture(canvas);
 };
 
