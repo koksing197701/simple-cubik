@@ -1,6 +1,6 @@
-// Turn Animator - Face rotation animation (snap turn)
+// Turn Animator - Face rotation animation (quaternion-from-save, no reparenting)
 // Module:    TurnAnimator
-// Version:   1.0.0
+// Version:   2.0.0
 // API:       constructor(cubeGroup, cubeState, callbacks)
 //            doTurn(face, prime) — face letter + CW/CCW
 //            isAnimating(), moves, resetMoves()
@@ -8,27 +8,33 @@
 // Depends:   THREE (global)
 // Callbacks: { rebuild, onMovesChange, onTurn, onDebugLog, onDebugLogBottom }
 // Changelog:
-//   1.0.0 - Initial modular version. Extracted from cube-3d-view.js v2.11.4.
-//           200ms ease-in-out snap animation. Layer-based cubie selection.
-//           Designed so a drag-proportional variant can replace this module.
+//   2.0.0 - Clark-style quaternion-from-save rotation. No reparenting.
+//           Dynamic gap detection. Cubic easing, 180ms. No rebuild after turn.
+//   1.0.0 - Initial modular version. 200ms ease-in-out, temp group reparenting.
 
 (function() {
 'use strict';
 
 function TurnAnimator(cubeGroup, cubeState, callbacks) {
   this.cubeGroup = cubeGroup;
-  this.cubeState = cubeState; // object with .state (array) and .doMove(move)
+  this.cubeState = cubeState;
   this.callbacks = callbacks || {};
   this._moves = 0;
   this._animating = false;
 
   this.AXIS_MAP = {
-    'U': { axis: new THREE.Vector3(0, 1, 0), layerY: 1 },
-    'D': { axis: new THREE.Vector3(0, -1, 0), layerY: -1 },
-    'F': { axis: new THREE.Vector3(0, 0, 1), layerZ: 1 },
-    'B': { axis: new THREE.Vector3(0, 0, -1), layerZ: -1 },
-    'L': { axis: new THREE.Vector3(-1, 0, 0), layerX: -1 },
-    'R': { axis: new THREE.Vector3(1, 0, 0), layerX: 1 },
+    'U': { axisVec: new THREE.Vector3(0, 1, 0), layerComp: 'y', layerVal: 1 },
+    'D': { axisVec: new THREE.Vector3(0, 1, 0), layerComp: 'y', layerVal: -1 },
+    'F': { axisVec: new THREE.Vector3(0, 0, 1), layerComp: 'z', layerVal: 1 },
+    'B': { axisVec: new THREE.Vector3(0, 0, 1), layerComp: 'z', layerVal: -1 },
+    'L': { axisVec: new THREE.Vector3(1, 0, 0), layerComp: 'x', layerVal: -1 },
+    'R': { axisVec: new THREE.Vector3(1, 0, 0), layerComp: 'x', layerVal: 1 },
+  };
+
+  this.FACE_SIGN = {
+    'U': -1, 'D': 1,
+    'F': -1, 'B': 1,
+    'L': 1, 'R': -1,
   };
 
   this.SLICE_AXIS = {
@@ -59,101 +65,110 @@ TurnAnimator.prototype.doTurn = function(face, prime) {
   if (!info) return;
 
   this._animating = true;
-
-  // Create anim group
-  var animGroup = new THREE.Group();
-  this.cubeGroup.add(animGroup);
-
-  // Find cubies on this layer
-  var cubiesToMove = [];
-  var children = this.cubeGroup.children;
-  for (var i = children.length - 1; i >= 0; i--) {
-    var child = children[i];
-    if (child.userData && child.userData.isCubieGroup) {
-      var pos = child.position;
-      var match = false;
-      if (info.layerY !== undefined && Math.abs(pos.y - info.layerY) < 0.01) match = true;
-      if (info.layerZ !== undefined && Math.abs(pos.z - info.layerZ) < 0.01) match = true;
-      if (info.layerX !== undefined && Math.abs(pos.x - info.layerX) < 0.01) match = true;
-      if (match) {
-        this.cubeGroup.remove(child);
-        animGroup.add(child);
-        cubiesToMove.push(child);
-      }
-    }
-  }
-
-  // If no cubies found, just snap
-  if (cubiesToMove.length === 0) {
-    this._animating = false;
-    this.cubeGroup.remove(animGroup);
-  }
-
-  // Snap state immediately
   var stateBefore = this.cubeState.state.slice();
   this.cubeState.doMove(move);
   this._moves++;
 
-  // Animate rotation
-  var angle = isPrime ? -Math.PI / 2 : Math.PI / 2;
-  var startTime = performance.now();
-  var duration = 200;
-  var self = this;
+  // Slice moves — just rebuild (no animation for now)
+  if (this.SLICE_AXIS[face]) {
+    if (this.callbacks.rebuild) this.callbacks.rebuild();
+    this._animating = false;
+    if (this.callbacks.onMovesChange) this.callbacks.onMovesChange(this._moves);
+    if (this.callbacks.onTurn) this.callbacks.onTurn(move);
+    return;
+  }
 
-  function animateTurn(now) {
-    var elapsed = now - startTime;
-    var t = Math.min(elapsed / duration, 1);
-    var ease = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
-    var currentAngle = angle * ease;
-    animGroup.quaternion.setFromAxisAngle(info.axis, currentAngle);
+  // Find cubies on this layer
+  var layerCubies = [];
+  var children = this.cubeGroup.children;
+  var comp = info.layerComp;
+  var target = info.layerVal;
 
-    if (t < 1) {
-      requestAnimationFrame(animateTurn);
-    } else {
-      // Complete — apply matrix and clean up
-      animGroup.quaternion.setFromAxisAngle(info.axis, angle);
-      animGroup.updateMatrixWorld(true);
-      while (animGroup.children.length) {
-        var c = animGroup.children[0];
-        c.applyMatrix4(animGroup.matrix);
-        animGroup.remove(c);
-        c.position.x = Math.round(c.position.x / 0.01) * 0.01;
-        c.position.y = Math.round(c.position.y / 0.01) * 0.01;
-        c.position.z = Math.round(c.position.z / 0.01) * 0.01;
-        self.cubeGroup.add(c);
-      }
-      self.cubeGroup.remove(animGroup);
+  // Compute actual spacing from the scene
+  var actualSpacing = 0.78;
+  for (var si = 0; si < children.length; si++) {
+    var ch = children[si];
+    if (ch.userData && ch.userData.isCubieGroup) {
+      var p = ch.position;
+      actualSpacing = Math.abs(p.x) || Math.abs(p.y) || Math.abs(p.z) || 0.78;
+      break;
+    }
+  }
 
-      // Rebuild and callbacks
-      if (self.callbacks.rebuild) self.callbacks.rebuild();
-      self._animating = false;
-      if (self.callbacks.onMovesChange) self.callbacks.onMovesChange(self._moves);
-      if (self.callbacks.onTurn) self.callbacks.onTurn(move);
-
-      // Debug color changes
-      if (typeof self.callbacks.onDebugLogBottom === 'function') {
-        var stateAfter = self.cubeState.state;
-        var faceNames = ['U','D','F','B','L','R'];
-        var colorNames = ['W','Y','G','B','O','R'];
-        var changes = [];
-        for (var si = 0; si < 54; si++) {
-          if (stateBefore[si] !== stateAfter[si]) {
-            var f = Math.floor(si / 9);
-            var r = Math.floor((si % 9) / 3);
-            var c = si % 3;
-            changes.push(faceNames[f] + '(' + r + ',' + c + '):' + colorNames[stateBefore[si]] + '→' + colorNames[stateAfter[si]]);
-          }
-        }
-        var msg = changes.length > 0 ? changes.join(' ') : 'no change';
-        self.callbacks.onDebugLogBottom('[' + move + '] ' + msg);
+  var expectedPos = target * actualSpacing;
+  for (var i = 0; i < children.length; i++) {
+    var child = children[i];
+    if (child.userData && child.userData.isCubieGroup) {
+      var val = (comp === 'x') ? child.position.x : (comp === 'y') ? child.position.y : child.position.z;
+      if (Math.abs(val - expectedPos) < 0.01) {
+        layerCubies.push(child);
       }
     }
   }
 
-  requestAnimationFrame(animateTurn);
+  // If no cubies found, just update state via rebuild
+  if (layerCubies.length === 0) {
+    if (this.callbacks.rebuild) this.callbacks.rebuild();
+    this._animating = false;
+    if (this.callbacks.onMovesChange) this.callbacks.onMovesChange(this._moves);
+    if (this.callbacks.onTurn) this.callbacks.onTurn(move);
+    return;
+  }
+
+  // Save initial positions & quaternions (Clark-style)
+  var initData = layerCubies.map(function(c) {
+    return { cubie: c, pos: c.position.clone(), quat: c.quaternion.clone() };
+  });
+
+  var faceSign = this.FACE_SIGN[face] || 1;
+  var CW = isPrime ? -1 : 1;
+  var targetAngle = CW * faceSign * Math.PI / 2;
+  var axisVec = info.axisVec;
+  var duration = 180;
+  var startTime = performance.now();
+  var self = this;
+
+  function tick(now) {
+    var t = Math.min((now - startTime) / duration, 1);
+    var ease = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    var currentAngle = targetAngle * ease;
+    var q = new THREE.Quaternion().setFromAxisAngle(axisVec, currentAngle);
+
+    for (var j = 0; j < initData.length; j++) {
+      var d = initData[j];
+      d.cubie.position.copy(d.pos).applyQuaternion(q);
+      d.cubie.quaternion.copy(q).multiply(d.quat);
+    }
+
+    if (t < 1) {
+      requestAnimationFrame(tick);
+    } else {
+      // Finalize at exact angle
+      var qFinal = new THREE.Quaternion().setFromAxisAngle(axisVec, targetAngle);
+      for (var k = 0; k < initData.length; k++) {
+        var d2 = initData[k];
+        d2.cubie.position.copy(d2.pos).applyQuaternion(qFinal);
+        d2.cubie.quaternion.copy(qFinal).multiply(d2.quat);
+      }
+      // Snap to 2 decimal places
+      for (var m = 0; m < initData.length; m++) {
+        var c = initData[m].cubie;
+        c.position.x = Math.round(c.position.x * 100) / 100;
+        c.position.y = Math.round(c.position.y * 100) / 100;
+        c.position.z = Math.round(c.position.z * 100) / 100;
+      }
+
+      self._animating = false;
+      // No rebuild — cubies rotate physically, stickers move with them
+      if (self.callbacks.onMovesChange) self.callbacks.onMovesChange(self._moves);
+      if (self.callbacks.onTurn) self.callbacks.onTurn(move);
+    }
+  }
+
+  requestAnimationFrame(tick);
 };
 
-// Edge adjacency data (kept for fallback compatibility)
+// Edge adjacency data
 TurnAnimator.prototype.edgeAdjacency = {
   2: { // F
     top: { face: 'U', isSlice: false },
