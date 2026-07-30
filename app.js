@@ -987,14 +987,12 @@ class CubeBuddyApp {
     }
 
     // Fallback: middle row/col → 2D slice support
-    // Match 3D edgeAdjacency mapping (from cube-3d-view.js):
-    //   F: midLeft/midRight=E, midTop/midBottom=M
-    //   U: midLeft/midRight=S, midTop/midBottom=M
-    //   D: midLeft/midRight=S, midTop/midBottom=M
-    //   L: midLeft/midRight=E, midTop/midBottom=S
-    //   R: midLeft/midRight=E, midTop/midBottom=S
-    const MID_ROW_SLICE = { 0:'S', 1:'S', 2:'E', 3:'E', 4:'E', 5:'E' };
-    const MID_COL_SLICE = { 0:'M', 1:'M', 2:'M', 3:'M', 4:'S', 5:'S' };
+    // Match ring-system mapping (v2.4 labels):
+    //   F/B: midLeft/midRight=S, midTop/midBottom=M
+    //   U/D: midLeft/midRight=E, midTop/midBottom=M
+    //   L/R: midLeft/midRight=S, midTop/midBottom=E
+    const MID_ROW_SLICE = { 0:'E', 1:'E', 2:'S', 3:'S', 4:'S', 5:'S' };
+    const MID_COL_SLICE = { 0:'M', 1:'M', 2:'M', 3:'M', 4:'E', 5:'E' };
     const isRowMid = (row === 1);
     const isColMid = (col === 1);
     if (isRowMid && isHorizontal) {
