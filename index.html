@@ -33,7 +33,7 @@
     <div class="top-bar">
       <div class="top-bar-left">
         <span class="app-title-text">Simple Cubik</span>
-        <span class="version-badge">v2.7</span>
+        <span class="version-badge">v2.9</span>
       </div>
       <div class="top-bar-right">
         <button id="theme-btn" class="theme-btn" title="Switch theme">🎨</button>
@@ -67,13 +67,19 @@
     <!-- Bottom panel -->
     <div class="bottom-panel">
       <div class="mode-controls">
-        <div id="face-buttons" style="display:flex;align-items:center;gap:6px;">
-          <button class="bU">U</button>
-          <button class="bD">D</button>
-          <button class="bC">C</button>
-          <button class="bB">B</button>
-          <button class="bL">L</button>
-          <button class="bR">R</button>
+        <div id="face-buttons" style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;justify-content:center;">
+          <button class="bU" style="background:#fff;color:#333;border-radius:6px;border:2px solid #ccc;padding:2px 8px;font-size:13px;font-weight:bold;cursor:pointer;" onclick="window.__cube3d&&window.__cube3d.animator.doTurn('U',0)">U+</button>
+          <button class="bU" style="background:#eee;color:#333;border-radius:6px;border:2px solid #ccc;padding:2px 8px;font-size:13px;font-weight:bold;cursor:pointer;" onclick="window.__cube3d&&window.__cube3d.animator.doTurn('U',1)">U-</button>
+          <button class="bD" style="background:#FFD500;color:#333;border-radius:6px;border:2px solid #e6c200;padding:2px 8px;font-size:13px;font-weight:bold;cursor:pointer;" onclick="window.__cube3d&&window.__cube3d.animator.doTurn('D',0)">D+</button>
+          <button class="bD" style="background:#e6c200;color:#333;border-radius:6px;border:2px solid #ccb000;padding:2px 8px;font-size:13px;font-weight:bold;cursor:pointer;" onclick="window.__cube3d&&window.__cube3d.animator.doTurn('D',1)">D-</button>
+          <button class="bC" style="background:#4CAF50;color:#fff;border-radius:6px;border:2px solid #388E3C;padding:2px 8px;font-size:13px;font-weight:bold;cursor:pointer;" onclick="window.__cube3d&&window.__cube3d.animator.doTurn('F',0)">F+</button>
+          <button class="bC" style="background:#388E3C;color:#fff;border-radius:6px;border:2px solid #2E7D32;padding:2px 8px;font-size:13px;font-weight:bold;cursor:pointer;" onclick="window.__cube3d&&window.__cube3d.animator.doTurn('F',1)">F-</button>
+          <button class="bB" style="background:#2196F3;color:#fff;border-radius:6px;border:2px solid #1976D2;padding:2px 8px;font-size:13px;font-weight:bold;cursor:pointer;" onclick="window.__cube3d&&window.__cube3d.animator.doTurn('B',0)">B+</button>
+          <button class="bB" style="background:#1976D2;color:#fff;border-radius:6px;border:2px solid #1565C0;padding:2px 8px;font-size:13px;font-weight:bold;cursor:pointer;" onclick="window.__cube3d&&window.__cube3d.animator.doTurn('B',1)">B-</button>
+          <button class="bL" style="background:#FF6600;color:#fff;border-radius:6px;border:2px solid #E65100;padding:2px 8px;font-size:13px;font-weight:bold;cursor:pointer;" onclick="window.__cube3d&&window.__cube3d.animator.doTurn('L',0)">L+</button>
+          <button class="bL" style="background:#E65100;color:#fff;border-radius:6px;border:2px solid #CC4A00;padding:2px 8px;font-size:13px;font-weight:bold;cursor:pointer;" onclick="window.__cube3d&&window.__cube3d.animator.doTurn('L',1)">L-</button>
+          <button class="bR" style="background:#F44336;color:#fff;border-radius:6px;border:2px solid #D32F2F;padding:2px 8px;font-size:13px;font-weight:bold;cursor:pointer;" onclick="window.__cube3d&&window.__cube3d.animator.doTurn('R',0)">R+</button>
+          <button class="bR" style="background:#D32F2F;color:#fff;border-radius:6px;border:2px solid #B71C1C;padding:2px 8px;font-size:13px;font-weight:bold;cursor:pointer;" onclick="window.__cube3d&&window.__cube3d.animator.doTurn('R',1)">R-</button>
         </div>
         <div id="controls-2d" style="display:none;align-items:center;gap:6px;">
           <button id="cross-btn" class="mode-tab active" title="Show 6-face cross net">✚ Cross</button>
@@ -176,7 +182,7 @@
   <script src="modules/3d/turn-animator.js?v=440"></script>
   <script src="modules/input/gesture-handler.js?v=120"></script>
   <script src="cube.js?v=450"></script>
-  <script src="cube-3d-view.js?v=460"></script>
+  <script src="cube-3d-view.js?v=480"></script>
   <script src="cubebuddy-scanner.js?v=3112"></script>
   <script src="app.js?v=500"></script>
 </body>

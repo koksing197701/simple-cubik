@@ -345,31 +345,8 @@ class CubeBuddyApp {
       'R': 'Right View',
     };
     const self = this;
-    // Fixed buttons: U/D/F/B/L/R always snap to that face — no color tracking
-    for (let ci = 0; ci < 6; ci++) {
-      const btn = document.querySelector(`.b${colorNames[ci]}`);
-      if (btn) {
-        btn.dataset.snapTarget = colorNames[ci];
-        btn.onclick = () => {
-          if (self._cube3d) {
-            self._cube3d.snapToFace(colorNames[ci]);
-            self._showCameraFlash(faceLabels[colorNames[ci]]);
-          } else {
-            // 2D mode: highlight the corresponding face
-            const faces = self.cubeContainer.querySelectorAll('.cube-face');
-            faces.forEach(f => f.classList.remove('highlighted'));
-            // Map C (Center) to F (Front) index for 2D highlighting
-            const letter = colorNames[ci] === 'C' ? 'F' : colorNames[ci];
-            const targetIdx = FACE_LETTERS.indexOf(letter);
-            faces.forEach(f => {
-              if (parseInt(f.dataset.faceIdx) === targetIdx) {
-                f.classList.add('highlighted');
-              }
-            });
-          }
-        };
-      }
-    }
+    // Fixed buttons: U/D/F/B/L/R — now handled by inline onclick in index.html
+    // Old snap-to-face behavior disabled (replaced with turn CW/CCW buttons)
     // Remove the doMove override that was updating button colors
     // (it's no longer needed since buttons are fixed)
   }
@@ -627,139 +604,32 @@ class CubeBuddyApp {
       const dist = Math.sqrt(dx * dx + dy * dy);
 
       if (dist >= 10 && touchStartFace !== null) {
-        const dirLabel = Math.abs(dx) >= Math.abs(dy) ? (dx > 0 ? '→' : '←') : (dy > 0 ? '↓' : '↑');
-        this._debugLog(`2D SWIPE: ${['U','D','F','B','L','R'][touchStartFace]} ${dirLabel} dist=${dist.toFixed(0)}`);
+        // Swipe disabled — use buttons only
+        touchStartFace = null;
+        touchStartEl = null;
       }
 
-      if (dist < 10) {
-        // It's a tap — check for double tap
-        const now = Date.now();
-        if (now - lastTapTime < 350) {
-          // Double tap! Cancel the pending single tap
-          if (tapPending) {
-            clearTimeout(tapPending);
-            tapPending = false;
-          }
-          handleTap(x, y, true);
+      // Tap detection
+      const now = Date.now();
+      if (now - lastTapTime < 350) {
+        // Double tap! Cancel the pending single tap
+        if (tapPending) {
+          clearTimeout(tapPending);
+          tapPending = false;
+        }
+        handleTap(x, y, true);
+        lastTapTime = 0;
+      } else {
+        // First tap — wait to see if it's a double tap
+        lastTapTime = now;
+        tapPending = setTimeout(() => {
+          handleTap(x, y, false);
+          tapPending = false;
           lastTapTime = 0;
-        } else {
-          // First tap — wait to see if it's a double tap
-          lastTapTime = now;
-          tapPending = setTimeout(() => {
-            handleTap(x, y, false);
-            tapPending = false;
-            lastTapTime = 0;
-          }, 400);
-        }
-      } else if (dist >= 10) {
-        // Try row/column swipe on the starting face first
-        const swipedFace = this._resolveSwipeOnFace(
-          touchStartX, touchStartY,
-          dx, dy, touchStartFace, touchStartEl
-        );
-        if (swipedFace) {
-          this._debugLog(`2D → resolved: ${swipedFace}`);
-          // Swipe direction determines CW vs CCW.
-          // Each adjacent-face edge has a specific swipe direction that
-          // turns the target face CW (based on physical cube geometry).
-          const SWIPE_CW_DIR = {
-            // F center → U/D/L/R
-            2: { row0: 'left', row2: 'right', col0: 'down', col2: 'up' },
-            // U → B/F/L/R
-            0: { row0: 'left', row2: 'right', col0: 'down', col2: 'up' },
-            // D → F/L/R/B
-            1: { row0: 'left', row2: 'right', col0: 'down', col2: 'up' },
-            // L → U/D/B/F
-            4: { row0: 'left', row2: 'right', col0: 'down', col2: 'up' },
-            // R → U/D/F/B
-            5: { row0: 'left', row2: 'right', col0: 'down', col2: 'up' },
-            // B → U/D/R/L (mirrored: col0=R, col2=L)
-            3: { row0: 'left', row2: 'right', col0: 'down', col2: 'up' },
-          };
-          const isHorizontal = Math.abs(dx) >= Math.abs(dy);
-          const swipeDir = isHorizontal
-            ? (dx > 0 ? 'right' : 'left')
-            : (dy > 0 ? 'down' : 'up');
-          // Determine which edge was used on the start face
-          // Priority: for horizontal swipes → check row edges first
-          //           for vertical swipes → check col edges first
-          let targetEl = this._findFaceByPos(touchStartX, touchStartY, touchStartFace);
-          let edgeKey = null;
-          if (targetEl) {
-            const r = targetEl.getBoundingClientRect();
-            const style = getComputedStyle(targetEl);
-            const padLeft = parseFloat(style.paddingLeft) || 0;
-            const padTop = parseFloat(style.paddingTop) || 0;
-            const borderLeft = parseFloat(style.borderLeftWidth) || 0;
-            const borderTop = parseFloat(style.borderTopWidth) || 0;
-            const insetX = padLeft + borderLeft;
-            const insetY = padTop + borderTop;
-            const innerW = Math.max(1, r.width - 2 * insetX);
-            const innerH = Math.max(1, r.height - 2 * insetY);
-            const localX = touchStartX - r.left - insetX;
-            const localY = touchStartY - r.top - insetY;
-            const cellW = innerW / 3;
-            const cellH = innerH / 3;
-            const col = Math.max(0, Math.min(2, Math.floor(localX / cellW)));
-            const row = Math.max(0, Math.min(2, Math.floor(localY / cellH)));
-            if (isHorizontal) {
-              // Horizontal swipe → row edges matter most
-              if (row === 0) edgeKey = 'row0';
-              else if (row === 2) edgeKey = 'row2';
-              else if (col === 0) edgeKey = 'col0';
-              else if (col === 2) edgeKey = 'col2';
-            } else {
-              // Vertical swipe → col edges matter most
-              if (col === 0) edgeKey = 'col0';
-              else if (col === 2) edgeKey = 'col2';
-              else if (row === 0) edgeKey = 'row0';
-              else if (row === 2) edgeKey = 'row2';
-            }
-            // Middle column with vertical swipe or middle row with horizontal swipe → fall through to base rule
-            if (edgeKey && ((isHorizontal && row === 1) || (!isHorizontal && col === 1))) edgeKey = null;
-            // Middle → turning the start face itself, use base rule
-          }
-          let isCcw;
-          if (edgeKey && SWIPE_CW_DIR[touchStartFace]?.[edgeKey]) {
-            // Adjacent face: CW = matching the lookup direction
-            isCcw = swipeDir !== SWIPE_CW_DIR[touchStartFace][edgeKey];
-            this._debugLog(`2D → dir: edgeKey=${edgeKey} swipeDir=${swipeDir} cwDir=${SWIPE_CW_DIR[touchStartFace][edgeKey]} baseCcw=${isCcw}`);
-          } else {
-            // Same face (middle row/col): base rule
-            // left→right = CCW, right→left = CW
-            // top→bottom = CW, bottom→top = CCW
-            isCcw = isHorizontal ? swipeDir === 'right' : swipeDir !== 'down';
-            this._debugLog(`2D → dir: base rule isCcw=${isCcw} isHoriz=${isHorizontal} swipeDir=${swipeDir}`);
-
-            // R face is mirrored — invert direction for vertical middle-col swipes
-            if (touchStartFace === 5 && !isHorizontal) isCcw = !isCcw;
-            // D face — invert S slice direction (horizontal mid-row swipes)
-            if (touchStartFace === 1 && isHorizontal) isCcw = !isCcw;
-            // B face direction override
-            if (touchStartFace === 3) {
-              // LB/RB (mirror=0) have identity mapping — invert directions vs UB/DB (mirror=1, 180° rotated)
-              const bMirror = targetEl && targetEl.dataset.mirror === '1';
-              if (isHorizontal) {
-                // U: right=CW, left=CCW. D: right=CCW, left=CW.
-                // Invert E slice for UB/DB (mirror=1) only — LB/RB stay as-is
-                isCcw = swipedFace === 'U' ? dx < 0 : dx > 0;
-                if (bMirror) isCcw = !isCcw;
-              } else {
-                // L: down=CCW, up=CW. R: down=CW, up=CCW.
-                // Invert M slice for LB/RB (identity mapping)
-                isCcw = swipedFace === 'L' ? dy > 0 : dy < 0;
-                if (!bMirror) isCcw = !isCcw;
-              }
-              this._debugLog(`2D → dir: B override face=${swipedFace} dy=${dy} mirror=${bMirror} finalCcw=${isCcw}`);
-            }
-          }
-          this._doMove(swipedFace, isCcw); // true = 3 CW turns = 1 CCW
-          this._debugLog(`2D → done: ${swipedFace} ${isCcw ? 'CCW' : 'CW'}`);
-        }
+        }, 400);
       }
-
-      touchStartX = undefined;
-      touchStartY = undefined;
+      touchStartFace = null;
+      touchStartEl = null;
       touchStartFace = null;
       touchStartEl = null;
     };
