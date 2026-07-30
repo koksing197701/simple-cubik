@@ -33,7 +33,7 @@
     <div class="top-bar">
       <div class="top-bar-left">
         <span class="app-title-text">Simple Cubik</span>
-        <span class="version-badge">v3.11.2</span>
+        <span class="version-badge">v2.6</span>
       </div>
       <div class="top-bar-right">
         <button id="theme-btn" class="theme-btn" title="Switch theme">🎨</button>
@@ -74,12 +74,6 @@
           <button class="bB">B</button>
           <button class="bL">L</button>
           <button class="bR">R</button>
-          <button class="bS" style="background:#666;color:#fff;border-radius:6px;border:none;padding:2px 8px;font-size:13px;font-weight:bold;cursor:pointer;" onclick="var el=document.getElementById('debug-overlay');if(el){el.textContent='BTN: S → S CW'+'\n'+(el.textContent||'').slice(0,300);el.style.display='block';}if(window.__cube3d)window.__cube3d.animator.doTurn('S',0)">S+</button>
-          <button class="bS" style="background:#888;color:#fff;border-radius:6px;border:none;padding:2px 8px;font-size:13px;font-weight:bold;cursor:pointer;" onclick="var el=document.getElementById('debug-overlay');if(el){el.textContent='BTN: S → S CCW'+'\n'+(el.textContent||'').slice(0,300);el.style.display='block';}if(window.__cube3d)window.__cube3d.animator.doTurn('S',1)">S-</button>
-          <button class="bM" style="background:#666;color:#fff;border-radius:6px;border:none;padding:2px 8px;font-size:13px;font-weight:bold;cursor:pointer;" onclick="var el=document.getElementById('debug-overlay');if(el){el.textContent='BTN: M → M CW'+'\n'+(el.textContent||'').slice(0,300);el.style.display='block';}if(window.__cube3d)window.__cube3d.animator.doTurn('M',0)">M+</button>
-          <button class="bM" style="background:#888;color:#fff;border-radius:6px;border:none;padding:2px 8px;font-size:13px;font-weight:bold;cursor:pointer;" onclick="var el=document.getElementById('debug-overlay');if(el){el.textContent='BTN: M → M CCW'+'\n'+(el.textContent||'').slice(0,300);el.style.display='block';}if(window.__cube3d)window.__cube3d.animator.doTurn('M',1)">M-</button>
-          <button class="bE" style="background:#666;color:#fff;border-radius:6px;border:none;padding:2px 8px;font-size:13px;font-weight:bold;cursor:pointer;" onclick="var el=document.getElementById('debug-overlay');if(el){el.textContent='BTN: E → E CW'+'\n'+(el.textContent||'').slice(0,300);el.style.display='block';}if(window.__cube3d)window.__cube3d.animator.doTurn('E',0)">E+</button>
-          <button class="bE" style="background:#888;color:#fff;border-radius:6px;border:none;padding:2px 8px;font-size:13px;font-weight:bold;cursor:pointer;" onclick="var el=document.getElementById('debug-overlay');if(el){el.textContent='BTN: E → E CCW'+'\n'+(el.textContent||'').slice(0,300);el.style.display='block';}if(window.__cube3d)window.__cube3d.animator.doTurn('E',1)">E-</button>
         </div>
         <div id="controls-2d" style="display:none;align-items:center;gap:6px;">
           <button id="cross-btn" class="mode-tab active" title="Show 6-face cross net">✚ Cross</button>
@@ -181,8 +175,8 @@
   <script src="modules/3d/cube-mesh.js?v=133"></script>
   <script src="modules/3d/turn-animator.js?v=440"></script>
   <script src="modules/input/gesture-handler.js?v=120"></script>
-  <script src="cube.js?v=3112"></script>
-  <script src="cube-3d-view.js?v=432"></script>
+  <script src="cube.js?v=450"></script>
+  <script src="cube-3d-view.js?v=460"></script>
   <script src="cubebuddy-scanner.js?v=3112"></script>
   <script src="app.js?v=3112"></script>
 </body>

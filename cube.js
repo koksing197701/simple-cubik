@@ -146,12 +146,10 @@ class RubiksCube {
 
   turnRprime() { for (let i = 0; i < 3; i++) this.turnR(); }
 
-  // E slice — Horizontal swipes on F/L/B/R middle row (BLCR S)
+  // S CW — moves S-ring stickers (F3,R3,B3,L3)
   // LEFT swipe: 30→48→21→39→30, 31→49→22→40→31, 32→50→23→41→32
-  // RIGHT swipe: 30→39→21→48→30, 31→40→22→49→31, 32→41→23→50→32
-  turnECW() {
+  turnSCW() {
     const s = [...this._state];
-    // LEFT swipe: 30→48→21→39→30, 31→49→22→40→31, 32→50→23→41→32
     this._state[48]=s[30]; this._state[21]=s[48];
     this._state[39]=s[21]; this._state[30]=s[39];
     this._state[49]=s[31]; this._state[22]=s[49];
@@ -160,7 +158,8 @@ class RubiksCube {
     this._state[41]=s[23]; this._state[32]=s[41];
   }
 
-  turnECCW() {
+  // S CCW
+  turnSCCW() {
     const s = [...this._state];
     // RIGHT swipe: 30→39→21→48→30, 31→40→22→49→31, 32→41→23→50→32
     this._state[39]=s[30]; this._state[21]=s[39];
@@ -202,12 +201,10 @@ class RubiksCube {
     this._state[31]=s[4];  // B center ← old U center
   }
 
-  // S slice — Horizontal swipes on U/D middle row (also L M↓ / R M↑)
+  // E CW — moves E-ring stickers (U3,L7,D5,R1)
   // LEFT swipe: 3→43→14→46→3, 4→40→13→49→4, 5→37→12→52→5
-  // RIGHT swipe: 3→46→14→43→3, 4→49→13→40→4, 5→52→12→37→5
-  turnSCW() {
+  turnECW() {
     const s = [...this._state];
-    // LEFT swipe: 3→43→14→46→3, 4→40→13→49→4, 5→37→12→52→5
     this._state[43]=s[3];  this._state[14]=s[43];
     this._state[46]=s[14]; this._state[3]=s[46];
     this._state[40]=s[4];  this._state[13]=s[40];
@@ -216,7 +213,8 @@ class RubiksCube {
     this._state[52]=s[12]; this._state[5]=s[52];
   }
 
-  turnSCCW() {
+  // E CCW
+  turnECCW() {
     const s = [...this._state];
     // RIGHT swipe: 3→46→14→43→3, 4→49→13→40→4, 5→52→12→37→5
     this._state[46]=s[3];  this._state[14]=s[46];
@@ -234,14 +232,9 @@ class RubiksCube {
     const n = prime ? 3 : 1;
 
     // Slice moves
-    // ⚠️ Function name quirk:
-    //   turnECW/ECCW = actually move S-ring stickers (F3,R3,B3,L3)
-    //   turnSCW/SCCW = actually move E-ring stickers (U3,L7,D5,R1)
-    // The function names were originally swapped but doMove correctly maps:
-    //   'S' calls turnECW, 'E' calls turnSCW
-    if (m === 'E') { if (prime) { this.turnSCCW(); return; } this.turnSCW(); return; }
+    if (m === 'E') { if (prime) { this.turnECCW(); return; } this.turnECW(); return; }
     if (m === 'M') { for (let i = 0; i < n; i++) this.turnMCW(); return; }
-    if (m === 'S') { for (let i = 0; i < n; i++) this.turnECW(); return; }
+    if (m === 'S') { for (let i = 0; i < n; i++) this.turnSCW(); return; }
 
     // Face moves via turnFace
     this.turnFace(move);
