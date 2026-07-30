@@ -29,16 +29,16 @@ function TurnAnimator(cubeGroup, cubeState, callbacks) {
     'B': { axisVec: new THREE.Vector3(0, 0, 1), layerComp: 'z', layerVal: -1 },
     'L': { axisVec: new THREE.Vector3(1, 0, 0), layerComp: 'x', layerVal: -1 },
     'R': { axisVec: new THREE.Vector3(1, 0, 0), layerComp: 'x', layerVal: 1 },
-    'S': { axisVec: new THREE.Vector3(0, 0, 1), layerComp: 'z', layerVal: 0 },
+    'E': { axisVec: new THREE.Vector3(0, 0, 1), layerComp: 'z', layerVal: 0 },
     'M': { axisVec: new THREE.Vector3(1, 0, 0), layerComp: 'x', layerVal: 0 },
-    'E': { axisVec: new THREE.Vector3(0, -1, 0), layerComp: 'y', layerVal: 0 },
+    'S': { axisVec: new THREE.Vector3(0, -1, 0), layerComp: 'y', layerVal: 0 },
   };
 
   this.FACE_SIGN = {
     'U': -1, 'D': 1,
     'F': -1, 'B': 1,
     'L': 1, 'R': -1,
-    'S': -1, 'M': 1, 'E': 1,
+    'E': 1, 'M': 1, 'S': 1,
   };
 
   this.SLICE_AXIS = {};
