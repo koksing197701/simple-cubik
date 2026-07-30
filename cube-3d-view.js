@@ -53,6 +53,12 @@ $3d = function CubeBuddy3D(options) {
       data.endSticker.faceIdx, data.endSticker.row, data.endSticker.col
     );
     if (result) {
+      var fn = ["U","D","F","B","L","R"];
+      var dbg = "Ring: " + result.ring + " → " + result.turn + " " + (result.isCw ? "CW" : "CCW")
+              + " | " + fn[data.startSticker.faceIdx] + "(" + data.startSticker.row + "," + data.startSticker.col + ")"
+              + "→" + fn[data.endSticker.faceIdx] + "(" + data.endSticker.row + "," + data.endSticker.col + ")";
+      var el = document.getElementById("debug-overlay");
+      if (el) { el.textContent = dbg + "\n" + (el.textContent || "").slice(0,300); el.style.display = "block"; }
       self.animator.doTurn(result.turn, result.isCw ? 0 : 1);
     } else if (data.endSticker && data.endSticker.faceIdx !== data.startSticker.faceIdx) {
       var letters = ['U','D','F','B','L','R'];

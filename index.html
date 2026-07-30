@@ -74,6 +74,12 @@
           <button class="bB">B</button>
           <button class="bL">L</button>
           <button class="bR">R</button>
+          <button class="bS" style="background:#666;color:#fff;border-radius:6px;border:none;padding:2px 8px;font-size:13px;font-weight:bold;cursor:pointer;" onclick="var el=document.getElementById('debug-overlay');if(el){el.textContent='BTN: S → S CW'+'\n'+(el.textContent||'').slice(0,300);el.style.display='block';}if(window.__cube3d)window.__cube3d.animator.doTurn('S',0)">S+</button>
+          <button class="bS" style="background:#888;color:#fff;border-radius:6px;border:none;padding:2px 8px;font-size:13px;font-weight:bold;cursor:pointer;" onclick="var el=document.getElementById('debug-overlay');if(el){el.textContent='BTN: S → S CCW'+'\n'+(el.textContent||'').slice(0,300);el.style.display='block';}if(window.__cube3d)window.__cube3d.animator.doTurn('S',1)">S-</button>
+          <button class="bM" style="background:#666;color:#fff;border-radius:6px;border:none;padding:2px 8px;font-size:13px;font-weight:bold;cursor:pointer;" onclick="var el=document.getElementById('debug-overlay');if(el){el.textContent='BTN: M → M CW'+'\n'+(el.textContent||'').slice(0,300);el.style.display='block';}if(window.__cube3d)window.__cube3d.animator.doTurn('M',0)">M+</button>
+          <button class="bM" style="background:#888;color:#fff;border-radius:6px;border:none;padding:2px 8px;font-size:13px;font-weight:bold;cursor:pointer;" onclick="var el=document.getElementById('debug-overlay');if(el){el.textContent='BTN: M → M CCW'+'\n'+(el.textContent||'').slice(0,300);el.style.display='block';}if(window.__cube3d)window.__cube3d.animator.doTurn('M',1)">M-</button>
+          <button class="bE" style="background:#666;color:#fff;border-radius:6px;border:none;padding:2px 8px;font-size:13px;font-weight:bold;cursor:pointer;" onclick="var el=document.getElementById('debug-overlay');if(el){el.textContent='BTN: E → E CW'+'\n'+(el.textContent||'').slice(0,300);el.style.display='block';}if(window.__cube3d)window.__cube3d.animator.doTurn('E',0)">E+</button>
+          <button class="bE" style="background:#888;color:#fff;border-radius:6px;border:none;padding:2px 8px;font-size:13px;font-weight:bold;cursor:pointer;" onclick="var el=document.getElementById('debug-overlay');if(el){el.textContent='BTN: E → E CCW'+'\n'+(el.textContent||'').slice(0,300);el.style.display='block';}if(window.__cube3d)window.__cube3d.animator.doTurn('E',1)">E-</button>
         </div>
         <div id="controls-2d" style="display:none;align-items:center;gap:6px;">
           <button id="cross-btn" class="mode-tab active" title="Show 6-face cross net">✚ Cross</button>
@@ -161,19 +167,22 @@
   <!-- ===== CONFETTI ===== -->
   <div id="confetti-container" class="confetti-container"></div>
 
+  <!-- ===== DEBUG OVERLAY ===== -->
+  <div id="debug-overlay" style="display:none;position:fixed;bottom:60px;left:8px;right:8px;background:rgba(0,0,0,0.85);color:#0f0;font:bold 14px monospace;padding:8px 12px;border-radius:8px;z-index:9999;white-space:pre-wrap;pointer-events:none;max-height:120px;overflow-y:auto;"></div>
+
   <!-- Three.js CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
   <!-- Scripts -->
   <!-- 3D Modules (load order matters) -->
-  <script src="modules/3d/ring-system.js?v=125?v=124?v=120"></script>
+  <script src="modules/3d/ring-system.js?v=370"></script>
   <script src="modules/3d/renderer.js?v=120"></script>
   <script src="modules/3d/orbit-controller.js?v=122"></script>
   <script src="modules/3d/cube-mesh.js?v=133"></script>
   <script src="modules/3d/turn-animator.js?v=132"></script>
   <script src="modules/input/gesture-handler.js?v=120"></script>
   <script src="cube.js?v=3112"></script>
-  <script src="cube-3d-view.js?v=133"></script>
+  <script src="cube-3d-view.js?v=371"></script>
   <script src="cubebuddy-scanner.js?v=3112"></script>
   <script src="app.js?v=3112"></script>
 </body>
