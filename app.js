@@ -607,6 +607,8 @@ class CubeBuddyApp {
         // Swipe disabled — use buttons only
         touchStartFace = null;
         touchStartEl = null;
+        // Skip tap detection — this was a swipe
+        return;
       }
 
       // Tap detection
@@ -628,8 +630,6 @@ class CubeBuddyApp {
           lastTapTime = 0;
         }, 400);
       }
-      touchStartFace = null;
-      touchStartEl = null;
       touchStartFace = null;
       touchStartEl = null;
     };
