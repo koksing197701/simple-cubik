@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Simple Cubik Bundler v5.1
+ * Simple Cubik Bundler v5.1.1
  * Concatenates library modules + API wrapper into one protected file.
  * Usage: node tools/bundle.js [--minify]
  */
@@ -46,7 +46,7 @@ window.SimpleCubik=SimpleCubik;})();
 function build() {
   if (!fs.existsSync(DIST)) fs.mkdirSync(DIST, { recursive: true });
   var parts = [];
-  parts.push('// Simple Cubik v5.1 — Domain Locked: synthex.my, cubikbuddy.com');
+  parts.push('// Simple Cubik v5.1.1 — Domain Locked: synthex.my, cubikbuddy.com');
   parts.push(DOMAIN_LOCK);
   FILES.forEach(function(f) {
     var fp = path.join(ROOT, f);

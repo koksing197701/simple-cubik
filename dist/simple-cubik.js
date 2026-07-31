@@ -1,4 +1,4 @@
-// Simple Cubik v5.1 — Domain Locked: synthex.my, cubikbuddy.com
+// Simple Cubik v5.1.1 — Domain Locked: synthex.my, cubikbuddy.com
 
 (function(){var a=['synthex.my','cubikbuddy.com','localhost','127.0.0.1'];var h=window.location.hostname;var o=false;for(var i=0;i<a.length;i++){if(h===a[i]||h.endsWith('.'+a[i])){o=true;break;}}if(!o){console.warn('Simple Cubik: unauthorized domain ('+h+').');return;}})();
 
