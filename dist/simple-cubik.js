@@ -106,7 +106,7 @@ function CubeRenderer(container) {
   this.camera.position.set(4.18, 3.14, 5.23);
   this.camera.lookAt(0, 0, 0);
 
-  this.renderer = new THREE.WebGLRenderer({ antialias: true });
+  this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
   this.renderer.setSize(w, h);
   this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   this.renderer.shadowMap.enabled = true;
