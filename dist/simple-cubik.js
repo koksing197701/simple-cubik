@@ -1,4 +1,4 @@
-// Simple Cubik v3.0 — Domain Locked: synthex.my, cubikbuddy.com
+// Simple Cubik v4.1 — Domain Locked: synthex.my, cubikbuddy.com
 
 (function(){var a=['synthex.my','cubikbuddy.com','localhost','127.0.0.1'];var h=window.location.hostname;var o=false;for(var i=0;i<a.length;i++){if(h===a[i]||h.endsWith('.'+a[i])){o=true;break;}}if(!o){console.warn('Simple Cubik: unauthorized domain ('+h+').');return;}})();
 
@@ -106,7 +106,7 @@ function CubeRenderer(container) {
   this.camera.position.set(4.18, 3.14, 5.23);
   this.camera.lookAt(0, 0, 0);
 
-  this.renderer = new THREE.WebGLRenderer({ antialias: true });
+  this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
   this.renderer.setSize(w, h);
   this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   this.renderer.shadowMap.enabled = true;
