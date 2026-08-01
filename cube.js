@@ -248,16 +248,22 @@ class RubiksCube {
     switch (move.toUpperCase()) {
       case 'U': this.turnU(); break;
       case "U'": this.turnUprime(); break;
+      case 'U2': this.turnU(); this.turnU(); break;
       case 'D': this.turnD(); break;
       case "D'": this.turnDprime(); break;
+      case 'D2': this.turnD(); this.turnD(); break;
       case 'F': this.turnF(); break;
       case "F'": this.turnFprime(); break;
+      case 'F2': this.turnF(); this.turnF(); break;
       case 'B': this.turnB(); break;
       case "B'": this.turnBprime(); break;
+      case 'B2': this.turnB(); this.turnB(); break;
       case 'L': this.turnL(); break;
       case "L'": this.turnLprime(); break;
+      case 'L2': this.turnL(); this.turnL(); break;
       case 'R': this.turnR(); break;
       case "R'": this.turnRprime(); break;
+      case 'R2': this.turnR(); this.turnR(); break;
     }
   }
 
