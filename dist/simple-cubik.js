@@ -1,4 +1,4 @@
-// Simple Cubik v5.1.2 — Domain Locked: synthex.my, cubikbuddy.com
+// Simple Cubik v5.2 — Domain Locked: synthex.my, cubikbuddy.com
 
 (function(){var a=['synthex.my','cubikbuddy.com','localhost','127.0.0.1'];var h=window.location.hostname;var o=false;for(var i=0;i<a.length;i++){if(h===a[i]||h.endsWith('.'+a[i])){o=true;break;}}if(!o){console.warn('Simple Cubik: unauthorized domain ('+h+').');return;}})();
 
@@ -1161,16 +1161,22 @@ class RubiksCube {
     switch (move.toUpperCase()) {
       case 'U': this.turnU(); break;
       case "U'": this.turnUprime(); break;
+      case 'U2': this.turnU(); this.turnU(); break;
       case 'D': this.turnD(); break;
       case "D'": this.turnDprime(); break;
+      case 'D2': this.turnD(); this.turnD(); break;
       case 'F': this.turnF(); break;
       case "F'": this.turnFprime(); break;
+      case 'F2': this.turnF(); this.turnF(); break;
       case 'B': this.turnB(); break;
       case "B'": this.turnBprime(); break;
+      case 'B2': this.turnB(); this.turnB(); break;
       case 'L': this.turnL(); break;
       case "L'": this.turnLprime(); break;
+      case 'L2': this.turnL(); this.turnL(); break;
       case 'R': this.turnR(); break;
       case "R'": this.turnRprime(); break;
+      case 'R2': this.turnR(); this.turnR(); break;
     }
   }
 
@@ -1275,6 +1281,10 @@ $3d = function CubeBuddy3D(options) {
       self.animator.doTurn(endLetter, prime);
     }
   };
+
+  // v5.2: keep a reference to the swipe handler so the API can restore it
+  // at runtime (setSwipe(true) after construction disabled it with swipe:false).
+  this._swipeHandler = this.gesture.onSwipe;
 
   this.gesture.onOrbit = function(data) {
     self.orbitCtrl.onDrag(data.dx, data.dy);
@@ -1808,6 +1818,11 @@ Net2D.prototype.destroy = function() {
   this._stickers = null;
 };
 
+// v5.2: runtime swipe toggle (Swipe Academy turns swipes on mid-game)
+Net2D.prototype.setSwipe = function(on) {
+  this.swipeEnabled = !!on;
+};
+
 // ─── Tap / double-tap (turn) ───
 Net2D.prototype._onTap = function(face) {
   var t = this;
@@ -1905,6 +1920,7 @@ SimpleCubik.prototype._init2D=function(){var t=this;var swipe=this._swipeOpt===u
 SimpleCubik.prototype._turn2D=function(f,p){var t=this;var x=f+(p?"'":"");t._cube.doMove(x);t._m++;if(t._cube.isSolved){if(t._cb.solve)t._cb.solve();if(t._onSolve)t._onSolve();}if(t._cb.move)t._cb.move(x,t._cube.state);if(t._onMove)t._onMove(x,t._cube.state);if(t._net2d)t._net2d.render();};
 SimpleCubik.prototype.setView=function(v){if(v===this._view)return;var t=this;if(v==='2d'){if(this._v){this._v.destroy();this._v=null;}this._c.innerHTML='';this._view='2d';this._init2D();}else{if(this._net2d){this._net2d.destroy();this._net2d=null;}this._c.innerHTML='';this._view='3d';this._init3D();if(this._v)this._v.rebuild();}};
 SimpleCubik.prototype.toggleView=function(){this.setView(this._view==='3d'?'2d':'3d');};
+SimpleCubik.prototype.setSwipe=function(on){on=!!on;this._swipeOpt=on;if(this._v&&this._v.gesture){this._v.gesture.onSwipe=on?(this._v._swipeHandler||null):null;}if(this._net2d&&this._net2d.setSwipe)this._net2d.setSwipe(on);};
 SimpleCubik.prototype.getState=function(){return this._cube.state.slice();};
 SimpleCubik.prototype.setState=function(s){if(!s||s.length!==54)return;this._cube.state=s;if(this._v)this._v.rebuild();if(this._net2d)this._net2d.render();};
 SimpleCubik.prototype.getColor=function(f,r,c){var i={U:0,D:1,F:2,B:3,L:4,R:5}[f];if(i===undefined)return null;var cl=['#FAFAFA','#FFD500','#4CAF50','#2196F3','#FF6600','#F44336'];return cl[this._cube.getFaceletColor(i,r,c)];};

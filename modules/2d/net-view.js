@@ -95,6 +95,11 @@ Net2D.prototype.destroy = function() {
   this._stickers = null;
 };
 
+// v5.2: runtime swipe toggle (Swipe Academy turns swipes on mid-game)
+Net2D.prototype.setSwipe = function(on) {
+  this.swipeEnabled = !!on;
+};
+
 // ─── Tap / double-tap (turn) ───
 Net2D.prototype._onTap = function(face) {
   var t = this;

@@ -71,6 +71,10 @@ $3d = function CubeBuddy3D(options) {
     }
   };
 
+  // v5.2: keep a reference to the swipe handler so the API can restore it
+  // at runtime (setSwipe(true) after construction disabled it with swipe:false).
+  this._swipeHandler = this.gesture.onSwipe;
+
   this.gesture.onOrbit = function(data) {
     self.orbitCtrl.onDrag(data.dx, data.dy);
   };

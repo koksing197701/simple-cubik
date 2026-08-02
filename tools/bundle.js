@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Simple Cubik Bundler v5.1.2
+ * Simple Cubik Bundler v5.2
  * Concatenates library modules + API wrapper into one protected file.
  * Usage: node tools/bundle.js [--minify]
  */
@@ -35,6 +35,7 @@ SimpleCubik.prototype._init2D=function(){var t=this;var swipe=this._swipeOpt===u
 SimpleCubik.prototype._turn2D=function(f,p){var t=this;var x=f+(p?"'":"");t._cube.doMove(x);t._m++;if(t._cube.isSolved){if(t._cb.solve)t._cb.solve();if(t._onSolve)t._onSolve();}if(t._cb.move)t._cb.move(x,t._cube.state);if(t._onMove)t._onMove(x,t._cube.state);if(t._net2d)t._net2d.render();};
 SimpleCubik.prototype.setView=function(v){if(v===this._view)return;var t=this;if(v==='2d'){if(this._v){this._v.destroy();this._v=null;}this._c.innerHTML='';this._view='2d';this._init2D();}else{if(this._net2d){this._net2d.destroy();this._net2d=null;}this._c.innerHTML='';this._view='3d';this._init3D();if(this._v)this._v.rebuild();}};
 SimpleCubik.prototype.toggleView=function(){this.setView(this._view==='3d'?'2d':'3d');};
+SimpleCubik.prototype.setSwipe=function(on){on=!!on;this._swipeOpt=on;if(this._v&&this._v.gesture){this._v.gesture.onSwipe=on?(this._v._swipeHandler||null):null;}if(this._net2d&&this._net2d.setSwipe)this._net2d.setSwipe(on);};
 SimpleCubik.prototype.getState=function(){return this._cube.state.slice();};
 SimpleCubik.prototype.setState=function(s){if(!s||s.length!==54)return;this._cube.state=s;if(this._v)this._v.rebuild();if(this._net2d)this._net2d.render();};
 SimpleCubik.prototype.getColor=function(f,r,c){var i={U:0,D:1,F:2,B:3,L:4,R:5}[f];if(i===undefined)return null;var cl=['#FAFAFA','#FFD500','#4CAF50','#2196F3','#FF6600','#F44336'];return cl[this._cube.getFaceletColor(i,r,c)];};
@@ -51,7 +52,7 @@ window.SimpleCubik=SimpleCubik;})();
 function build() {
   if (!fs.existsSync(DIST)) fs.mkdirSync(DIST, { recursive: true });
   var parts = [];
-  parts.push('// Simple Cubik v5.1.2 — Domain Locked: synthex.my, cubikbuddy.com');
+  parts.push('// Simple Cubik v5.2 — Domain Locked: synthex.my, cubikbuddy.com');
   parts.push(DOMAIN_LOCK);
   FILES.forEach(function(f) {
     var fp = path.join(ROOT, f);
