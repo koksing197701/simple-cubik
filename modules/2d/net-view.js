@@ -57,7 +57,9 @@ Net2D.prototype.build = function() {
       s.dataset.f = faceIdx;
       s.dataset.i = i;
       s.addEventListener('click', function() { t._onTap(parseInt(this.dataset.f, 10)); });
-      s.addEventListener('dblclick', function() { t._onDblTap(parseInt(this.dataset.f, 10)); });
+      // NO native 'dblclick' listener: _onTap's 300ms timer already handles
+      // double-tap (1 CCW). A dblclick listener fired a SECOND CCW → double-tap
+      // rotated 2 times instead of 1 backward (bug found Aug 3, 2D mode).
       s.addEventListener('touchstart', function(e) { t._onTouchStart(e, this); }, { passive: true });
       s.addEventListener('touchmove', function(e) { t._onTouchMove(e); }, { passive: true });
       s.addEventListener('touchend', function(e) { t._onTouchEnd(e); });
@@ -113,13 +115,6 @@ Net2D.prototype._onTap = function(face) {
     if (t._tapTimer) clearTimeout(t._tapTimer);
     t._tapTimer = setTimeout(function() { t._tapTimer = null; t.onTurn(t.FACE_LETTERS[face], false); }, 300);
   }
-};
-
-Net2D.prototype._onDblTap = function(face) {
-  var t = this;
-  if (t._tapTimer) { clearTimeout(t._tapTimer); t._tapTimer = null; }
-  t._lastTap = 0;
-  t.onTurn(t.FACE_LETTERS[face], true);
 };
 
 // ─── Swipe (adjacent-face turns, when enabled) ───
